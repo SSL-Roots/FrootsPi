@@ -23,6 +23,7 @@ find_package(rclcpp_lifecycle REQUIRED)
 find_package(std_msgs REQUIRED)
 
 include_directories(include)
+include_directories(/usr/local/include)
 
 add_library(driver_component SHARED
   src/driver_component.cpp)

@@ -26,8 +26,5 @@ jobs:
           make
           sudo make install
       - uses: actions/checkout@v2
-      - name: Check path
-        run: |
-          echo $LD_LIBRARY_PATH
       - uses: "ros-industrial/industrial_ci@master"
         env: ${{ matrix.env }}
