@@ -1,0 +1,29 @@
+name: foxy-build
+
+on:
+  push:
+    paths-ignore:
+    - '**.md'
+  pull_request:
+    paths-ignore:
+    - '**.md'
+
+jobs:
+  industrial_ci:
+    strategy:
+      fail-fast: false
+      matrix:
+        env:
+          - { ROS_DISTRO: foxy, ROS_REPO: ros }
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install pigpio
+        run: |
+          git clone https://github.com/joan2937/pigpio
+          cd pigpio
+          make
+          make install
+      - uses: actions/checkout@v2
+      - uses: "ros-industrial/industrial_ci@master"
+        env: ${{ matrix.env }}
