@@ -24,17 +24,17 @@ jobs:
       - name: Build Workspace
         run: |
           . /opt/ros/foxy/setup.sh
-          mkdir -p $GITHUB_WORKSPACE/ros2_ws/src
-          cd $GITHUB_WORKSPACE/ros2_ws
+          mkdir -p ros2_ws/src
+          cd ros2_ws
           colcon build
       - name: Checkout
         uses: actions/checkout@v2
         with:
-          path: ros2_ws/src/
+          path: ros2_ws/src/frootspi
       - name: Build 
         run: |
           . /opt/ros/foxy/setup.sh
-          cd $GITHUB_WORKSPACE/ros2_ws/src
+          cd ros2_ws/src
           apt update
           rosdep update
           rosdep install -r -y -i --from-paths .
@@ -43,7 +43,7 @@ jobs:
       - name: Test
         run: |
           . /opt/ros/foxy/setup.sh
-          . $GITHUB_WORKSPACE/ros2_ws/install/setup.sh
-          cd $GITHUB_WORKSPACE/ros2_ws
+          . ros2_ws/install/setup.sh
+          cd ros2_ws
           colcon test
           colcon test-result --verbose
