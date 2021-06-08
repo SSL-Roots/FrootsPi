@@ -17,6 +17,8 @@ jobs:
           - { ROS_DISTRO: foxy, ROS_REPO: ros }
 
     runs-on: ubuntu-latest
+    env:
+      LD_LIBRARY_PATH: /usr/local/lib
     steps:
       - name: Install pigpio
         run: |
@@ -27,6 +29,4 @@ jobs:
           sudo make install
       - uses: actions/checkout@v2
       - uses: "ros-industrial/industrial_ci@master"
-        env:
-          ${{ matrix.env }}
-          LD_LIBRARY_PATH: /usr/local/lib
+        env: ${{ matrix.env }}
