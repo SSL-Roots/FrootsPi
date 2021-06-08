@@ -1,4 +1,4 @@
-name: foxy-build
+name: foxy
 
 on:
   push:
@@ -9,16 +9,10 @@ on:
     - '**.md'
 
 jobs:
-  industrial_ci:
-    strategy:
-      fail-fast: false
-      matrix:
-        env:
-          - { ROS_DISTRO: foxy, ROS_REPO: ros }
-
+  build-and-test:
     runs-on: ubuntu-latest
-    env:
-      LD_LIBRARY_PATH: /usr/local/lib
+    container:
+      image: ros:foxy-ros-base
     steps:
       - name: Install pigpio
         run: |
@@ -27,6 +21,29 @@ jobs:
           cd pigpio
           make
           sudo make install
-      - uses: actions/checkout@v2
-      - uses: "ros-industrial/industrial_ci@master"
-        env: ${{ matrix.env }}
+      - name: Build Workspace
+        run: |
+          . /opt/ros/foxy/setup.sh
+          mkdir -p $GITHUB_WORKSPACE/ros2_ws/src
+          cd $GITHUB_WORKSPACE/ros2_ws
+          colcon build
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          path: ros2_ws/src/
+      - name: Build 
+        run: |
+          . /opt/ros/foxy/setup.sh
+          cd $GITHUB_WORKSPACE/ros2_ws/src
+          apt update
+          rosdep update
+          rosdep install -r -y -i --from-paths .
+          cd ..
+          colcon build --symlink-install
+      - name: Test
+        run: |
+          . /opt/ros/foxy/setup.sh
+          . $GITHUB_WORKSPACE/ros2_ws/install/setup.sh
+          cd $GITHUB_WORKSPACE/ros2_ws
+          colcon test
+          colcon test-result --verbose
