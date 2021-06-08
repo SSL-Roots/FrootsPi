@@ -23,7 +23,7 @@ jobs:
           git clone https://github.com/joan2937/pigpio
           cd pigpio
           make
-          make install
+          sudo make install
       - uses: actions/checkout@v2
       - uses: "ros-industrial/industrial_ci@master"
         env: ${{ matrix.env }}
