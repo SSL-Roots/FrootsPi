@@ -12,21 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "frootspi_hardware/driver_component.hpp"
+
+#include <pigpiod_if2.h>
 
 #include <algorithm>
-#include <memory>
 #include <chrono>
 #include <functional>
 #include <iostream>
-#include <utility>
+#include <memory>
 #include <string>
+#include <utility>
 #include <vector>
-#include <pigpiod_if2.h>
 
+#include "frootspi_hardware/driver_component.hpp"
+#include "lifecycle_msgs/srv/change_state.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/int16.hpp"
-#include "lifecycle_msgs/srv/change_state.hpp"
 
 using namespace std::chrono_literals;
 using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
@@ -44,12 +45,12 @@ void Driver::on_polling_timer()
 {
   int switch_state = gpio_read(pi_, 19);
 
-  if(switch_state >= 0){
+  if (switch_state >= 0) {
     auto pub_sw_msg = std::make_unique<std_msgs::msg::Int16>();
     pub_sw_msg->data = switch_state;
 
     switch_state_pub_->publish(std::move(pub_sw_msg));
-  } 
+  }
 }
 
 CallbackReturn Driver::on_configure(const rclcpp_lifecycle::State &)
@@ -66,7 +67,7 @@ CallbackReturn Driver::on_configure(const rclcpp_lifecycle::State &)
 
   pi_ = pigpio_start(NULL, NULL);
 
-  if(pi_ < 0){
+  if (pi_ < 0) {
     RCLCPP_ERROR(this->get_logger(), "Failed to connect pigpiod.");
     return CallbackReturn::FAILURE;
   }

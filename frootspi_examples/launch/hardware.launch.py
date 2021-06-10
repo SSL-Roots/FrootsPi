@@ -18,7 +18,6 @@ from launch.actions import RegisterEventHandler
 from launch.event_handlers import OnProcessExit
 from launch.event_handlers import OnProcessStart
 from launch_ros.actions import ComposableNodeContainer
-from launch_ros.actions import Node
 from launch_ros.descriptions import ComposableNode
 
 
@@ -33,7 +32,7 @@ def generate_launch_description():
                 package='frootspi_hardware',
                 plugin='frootspi_hardware::Driver',
                 name='hardware_driver',
-                extra_arguments=[{'use_intra_process_comms' : True}],
+                extra_arguments=[{'use_intra_process_comms': True}],
                 ),
         ],
         output='screen',
