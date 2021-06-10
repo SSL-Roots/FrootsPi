@@ -1,0 +1,49 @@
+name: foxy
+
+on:
+  push:
+    paths-ignore:
+    - '**.md'
+  pull_request:
+    paths-ignore:
+    - '**.md'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    container:
+      image: ros:foxy-ros-base
+    steps:
+      - name: Install pigpio
+        run: |
+          cd $HOME
+          git clone https://github.com/joan2937/pigpio
+          cd pigpio
+          make
+          sudo make install
+      - name: Build Workspace
+        run: |
+          . /opt/ros/foxy/setup.sh
+          mkdir -p ros2_ws/src
+          cd ros2_ws
+          colcon build
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          path: ros2_ws/src/frootspi
+      - name: Build 
+        run: |
+          . /opt/ros/foxy/setup.sh
+          cd ros2_ws/src
+          apt update
+          rosdep update
+          rosdep install -r -y -i --from-paths .
+          cd ..
+          colcon build --symlink-install
+      - name: Test
+        run: |
+          . /opt/ros/foxy/setup.sh
+          . ros2_ws/install/setup.sh
+          cd ros2_ws
+          colcon test
+          colcon test-result --verbose
