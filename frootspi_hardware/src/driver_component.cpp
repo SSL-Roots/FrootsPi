@@ -43,14 +43,10 @@ Driver::Driver(const rclcpp::NodeOptions & options)
 
 void Driver::on_polling_timer()
 {
-  int switch_state = gpio_read(pi_, 19);
+  auto ball_detection_msg = std::make_unique<frootspi_msgs::msg::BallDetection>();
+  ball_detection_msg->detected = true;
 
-  if (switch_state >= 0) {
-    auto pub_sw_msg = std::make_unique<std_msgs::msg::Int16>();
-    pub_sw_msg->data = switch_state;
-
-    switch_state_pub_->publish(std::move(pub_sw_msg));
-  }
+  pub_ball_detection_->publish(std::move(ball_detection_msg));
 }
 
 CallbackReturn Driver::on_configure(const rclcpp_lifecycle::State &)
@@ -63,7 +59,7 @@ CallbackReturn Driver::on_configure(const rclcpp_lifecycle::State &)
   // Don't actually start publishing data until activated
   polling_timer_->cancel();
 
-  switch_state_pub_ = create_publisher<std_msgs::msg::Int16>("switch_state", 1);
+  pub_ball_detection_ = create_publisher<frootspi_msgs::msg::BallDetection>("ball_detection", 1);
 
   pi_ = pigpio_start(NULL, NULL);
 
@@ -79,7 +75,7 @@ CallbackReturn Driver::on_activate(const rclcpp_lifecycle::State &)
 {
   RCLCPP_INFO(this->get_logger(), "on_activate() is called.");
 
-  switch_state_pub_->on_activate();
+  pub_ball_detection_->on_activate();
   polling_timer_->reset();
 
   return CallbackReturn::SUCCESS;
@@ -89,7 +85,7 @@ CallbackReturn Driver::on_deactivate(const rclcpp_lifecycle::State &)
 {
   RCLCPP_INFO(this->get_logger(), "on_deactivate() is called.");
 
-  switch_state_pub_->on_deactivate();
+  pub_ball_detection_->on_deactivate();
   polling_timer_->cancel();
 
   return CallbackReturn::SUCCESS;
@@ -99,7 +95,7 @@ CallbackReturn Driver::on_cleanup(const rclcpp_lifecycle::State &)
 {
   RCLCPP_INFO(this->get_logger(), "on_cleanup() is called.");
 
-  switch_state_pub_.reset();
+  pub_ball_detection_.reset();
   polling_timer_.reset();
 
   pigpio_stop(pi_);
@@ -111,7 +107,7 @@ CallbackReturn Driver::on_shutdown(const rclcpp_lifecycle::State &)
 {
   RCLCPP_INFO(this->get_logger(), "on_shutdown() is called.");
 
-  switch_state_pub_.reset();
+  pub_ball_detection_.reset();
   polling_timer_.reset();
 
   return CallbackReturn::SUCCESS;

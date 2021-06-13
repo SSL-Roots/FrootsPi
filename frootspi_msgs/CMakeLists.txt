@@ -18,16 +18,31 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 
-rosidl_generate_interfaces(${PROJECT_NAME}
+set(msg_files
+  "msg/BallDetection.msg"
   "msg/BatteryVoltage.msg"
   "msg/DribblePower.msg"
   "msg/SwitchesState.msg"
   "msg/WheelVelocities.msg"
 )
 
+set(srv_files
+  "srv/Kick.srv"
+  "srv/SetKickerCharging.srv"
+  "srv/SetLCDText.srv"
+)
+
+rosidl_generate_interfaces(${PROJECT_NAME}
+  ${msg_files}
+  ${srv_files}
+  ADD_LINTER_TESTS
+)
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
 endif()
+
+ament_export_dependencies(rosidl_default_runtime)
 
 ament_package()

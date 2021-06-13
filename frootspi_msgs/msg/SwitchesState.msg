@@ -1,12 +1,12 @@
 # プッシュスイッチ
-bool push0_pressed
-bool push1_pressed
-bool push2_pressed
-bool push3_pressed
+bool pushed_button0
+bool pushed_button1
+bool pushed_button2
+bool pushed_button3
 
 # DIPスイッチ
-bool dip0_on
-bool dip1_on
+bool turend_on_dip0
+bool turend_on_dip2
 
 # シャットダウンスイッチ
-bool shutdown_pressed
+bool pushed_shutdwon

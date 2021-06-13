@@ -24,6 +24,8 @@
 #include "rclcpp_lifecycle/lifecycle_node.hpp"
 #include "rclcpp_lifecycle/lifecycle_publisher.hpp"
 #include "std_msgs/msg/int16.hpp"
+#include "std_msgs/msg/float32.hpp"
+#include "frootspi_msgs/msg/ball_detection.hpp"
 
 namespace frootspi_hardware
 {
@@ -38,12 +40,6 @@ protected:
   void on_polling_timer();
 
 private:
-  int pi_;
-
-  std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<std_msgs::msg::Int16>> switch_state_pub_;
-
-  rclcpp::TimerBase::SharedPtr polling_timer_;
-
   rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
   on_configure(const rclcpp_lifecycle::State &);
   rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
@@ -54,6 +50,12 @@ private:
   on_cleanup(const rclcpp_lifecycle::State &);
   rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
   on_shutdown(const rclcpp_lifecycle::State &);
+
+  std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<frootspi_msgs::msg::BallDetection>> pub_ball_detection_;
+
+  rclcpp::TimerBase::SharedPtr polling_timer_;
+
+  int pi_;
 };
 
 }  // namespace frootspi_hardware
