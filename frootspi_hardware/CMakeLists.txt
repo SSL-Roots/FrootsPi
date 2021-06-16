@@ -17,11 +17,12 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
+find_package(frootspi_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(rclcpp_lifecycle REQUIRED)
-find_package(std_msgs REQUIRED)
-find_package(frootspi_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(std_srvs REQUIRED)
 
 include_directories(include)
 
@@ -30,11 +31,12 @@ add_library(driver_component SHARED
 target_compile_definitions(driver_component
   PRIVATE "FROOTSPI_HARDWARE_BUILDING_DLL")
 ament_target_dependencies(driver_component
+  frootspi_msgs
   rclcpp
   rclcpp_components
   rclcpp_lifecycle
-  std_msgs
-  frootspi_msgs
+  sensor_msgs
+  std_srvs
 )
 target_link_libraries(driver_component pigpiod_if2)
 rclcpp_components_register_nodes(driver_component "frootspi_hardware::Driver")
@@ -46,11 +48,12 @@ ament_target_dependencies(driver_node
 
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
 
+ament_export_dependencies(frootspi_msgs)
 ament_export_dependencies(rclcpp)
 ament_export_dependencies(rclcpp_components)
 ament_export_dependencies(rclcpp_lifecycle)
-ament_export_dependencies(std_msgs)
-ament_export_dependencies(frootspi_msgs)
+ament_export_dependencies(sensor_msgs)
+ament_export_dependencies(std_srvs)
 
 ament_export_include_directories(include)
 ament_export_libraries(driver_component)
