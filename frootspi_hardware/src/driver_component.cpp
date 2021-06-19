@@ -71,6 +71,54 @@ void Driver::on_kick(const frootspi_msgs::srv::Kick::Request::SharedPtr request,
   response->message = "キック成功したで";
 }
 
+void Driver::on_set_kicker_charging(const frootspi_msgs::srv::SetKickerCharging::Request::SharedPtr request,
+               frootspi_msgs::srv::SetKickerCharging::Response::SharedPtr response)
+{
+  if(request->start_charging){
+    std::cout << "キッカーの充電を開始" << std::endl;
+  }else{
+    std::cout << "キッカーの充電を停止" << std::endl;
+  }
+
+  response->success = true;
+  response->message = "充電処理に成功したで";
+}
+
+void Driver::on_set_lcd_text(const frootspi_msgs::srv::SetLCDText::Request::SharedPtr request,
+               frootspi_msgs::srv::SetLCDText::Response::SharedPtr response)
+{
+  std::cout << "LCDに文字列" << request->text << std::endl;
+
+  response->success = true;
+  response->message = "LCDに文字列をセットしたで";
+}
+
+void Driver::on_set_left_led(const std_srvs::srv::SetBool::Request::SharedPtr request,
+              std_srvs::srv::SetBool::Response::SharedPtr response)
+{
+  std::cout << "left_ledを操作するで:" << request->data << std::endl;
+
+  response->success = true;
+  response->message = "LEDをセットしたで";
+}
+
+void Driver::on_set_center_led(const std_srvs::srv::SetBool::Request::SharedPtr request,
+              std_srvs::srv::SetBool::Response::SharedPtr response)
+{
+  std::cout << "center_ledを操作するで:" << request->data << std::endl;
+
+  response->success = true;
+  response->message = "LEDをセットしたで";
+}
+
+void Driver::on_set_right_led(const std_srvs::srv::SetBool::Request::SharedPtr request,
+              std_srvs::srv::SetBool::Response::SharedPtr response)
+{
+  std::cout << "right_ledを操作するで:" << request->data << std::endl;
+
+  response->success = true;
+  response->message = "LEDをセットしたで";
+}
 
 CallbackReturn Driver::on_configure(const rclcpp_lifecycle::State &)
 {
@@ -96,6 +144,16 @@ CallbackReturn Driver::on_configure(const rclcpp_lifecycle::State &)
     "target_wheel_velocities", 1, std::bind(&Driver::callback_wheel_velocities, this, _1));
 
   srv_kick_ = create_service<frootspi_msgs::srv::Kick>("kick", std::bind(&Driver::on_kick, this, _1, _2));
+  srv_set_kicker_charging_ = create_service<frootspi_msgs::srv::SetKickerCharging>(
+    "set_kicker_charging", std::bind(&Driver::on_set_kicker_charging, this, _1, _2));
+  srv_set_lcd_text_ = create_service<frootspi_msgs::srv::SetLCDText>(
+    "set_lcd_text", std::bind(&Driver::on_set_lcd_text, this, _1, _2));
+  srv_set_left_led_ = create_service<std_srvs::srv::SetBool>(
+    "set_left_led", std::bind(&Driver::on_set_left_led, this, _1, _2));
+  srv_set_center_led_ = create_service<std_srvs::srv::SetBool>(
+    "set_center_led", std::bind(&Driver::on_set_center_led, this, _1, _2));
+  srv_set_right_led_ = create_service<std_srvs::srv::SetBool>(
+    "set_right_led", std::bind(&Driver::on_set_right_led, this, _1, _2));
 
   pi_ = pigpio_start(NULL, NULL);
 

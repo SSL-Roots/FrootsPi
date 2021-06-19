@@ -49,6 +49,16 @@ private:
   void callback_wheel_velocities(const frootspi_msgs::msg::WheelVelocities::SharedPtr msg);
   void on_kick(const frootspi_msgs::srv::Kick::Request::SharedPtr request,
                frootspi_msgs::srv::Kick::Response::SharedPtr response);
+  void on_set_kicker_charging(const frootspi_msgs::srv::SetKickerCharging::Request::SharedPtr request,
+               frootspi_msgs::srv::SetKickerCharging::Response::SharedPtr response);
+  void on_set_lcd_text(const frootspi_msgs::srv::SetLCDText::Request::SharedPtr request,
+               frootspi_msgs::srv::SetLCDText::Response::SharedPtr response);
+  void on_set_left_led(const std_srvs::srv::SetBool::Request::SharedPtr request,
+               std_srvs::srv::SetBool::Response::SharedPtr response);
+  void on_set_center_led(const std_srvs::srv::SetBool::Request::SharedPtr request,
+               std_srvs::srv::SetBool::Response::SharedPtr response);
+  void on_set_right_led(const std_srvs::srv::SetBool::Request::SharedPtr request,
+               std_srvs::srv::SetBool::Response::SharedPtr response);
 
   rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
   on_configure(const rclcpp_lifecycle::State &);
