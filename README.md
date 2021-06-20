@@ -58,6 +58,7 @@ GPIO19にスイッチを接続し、次のコマンドを実行。
 ```sh
 # pigpioデーモンの起動（ログアウトするまで再実行不要）
 $ sudo pigpiod
+$ source ~/ros2_ws/install/setup.bash
 $ ros2 launch frootspi_examples hardware.launch.py 
 ```
 
