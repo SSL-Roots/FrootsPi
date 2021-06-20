@@ -1,0 +1,7 @@
+# LCDにセットするテキスト
+string text
+---
+# セットに成功したらtrueを返す
+bool success
+# セット結果の詳細。エラー情報を返してもよし
+string message

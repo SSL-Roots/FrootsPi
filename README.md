@@ -58,6 +58,7 @@ GPIO19にスイッチを接続し、次のコマンドを実行。
 ```sh
 # pigpioデーモンの起動（ログアウトするまで再実行不要）
 $ sudo pigpiod
+$ source ~/ros2_ws/install/setup.bash
 $ ros2 launch frootspi_examples hardware.launch.py 
 ```
 
@@ -65,4 +66,27 @@ $ ros2 launch frootspi_examples hardware.launch.py
 
 ```sh
 $ ros2 topic echo /switch_state
+```
+
+## Development
+
+FrootsPiを開発する際にここを読んでください。
+
+### Lint
+
+コードの見た目を整えるためにlintでチェックしています。
+
+下記コマンドを実行して、チェックを実行してください。
+
+```sh
+$ cd ~/ros2_ws
+$ colcon test
+$ colcon test-result --verbose
+```
+
+C++のコードは`ament_uncrustify`を使って、自動で整形できます。
+
+```sh
+$ cd frootspi_hardware/src
+$ ament_uncrustify --reformat driver_component.cpp
 ```
