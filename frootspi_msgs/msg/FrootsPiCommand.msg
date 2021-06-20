@@ -1,5 +1,5 @@
-# ボールを検出したらtrue
-bool detected
+# ロボットID
+uint8 robot_id
 
 # ロボット座標系でのロボット走行速度
 float64 vel_x
