@@ -43,10 +43,49 @@ Driver::Driver(const rclcpp::NodeOptions & options)
 
 void Driver::on_polling_timer()
 {
+  // ボール検出をパブリッシュ
   auto ball_detection_msg = std::make_unique<frootspi_msgs::msg::BallDetection>();
-  ball_detection_msg->detected = true;
-
+  ball_detection_msg->detected = true;  // 検出したらtrueをセット
   pub_ball_detection_->publish(std::move(ball_detection_msg));
+
+  // バッテリー電圧をパブリッシュ
+  auto battery_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
+  battery_voltage_msg->voltage = 14.8; // バッテリー電圧 [v]をセット
+  battery_voltage_msg->voltage_status = frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_FULL;  // 電圧状態をセット
+  pub_battery_voltage_->publish(std::move(battery_voltage_msg));
+  
+  // UPS(無停電電源装置)電圧をパブリッシュ
+  auto ups_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
+  ups_voltage_msg->voltage = 3.4; // UPS電圧 [v]をセット
+  ups_voltage_msg->voltage_status = frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_TOO_LOW;  // 電圧状態をセット
+  pub_ups_voltage_->publish(std::move(ups_voltage_msg));
+
+  // キッカー（昇圧回路）電圧をパブリッシュ
+  auto kicker_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
+  kicker_voltage_msg->voltage = 200.0; // キッカー電圧 [v]をセット
+  kicker_voltage_msg->voltage_status = frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_CHARGED;  // 電圧状態をセット
+  pub_kicker_voltage_->publish(std::move(kicker_voltage_msg));
+
+  // スイッチ状態をパブリッシュ
+  auto switches_state_msg = std::make_unique<frootspi_msgs::msg::SwitchesState>();
+  switches_state_msg->pushed_button0 = true; // プッシュスイッチ0が押されていたらtrue
+  switches_state_msg->pushed_button1 = false; // プッシュスイッチ1が押されていたらtrue
+  switches_state_msg->pushed_button2 = true; // プッシュスイッチ2が押されていたらtrue
+  switches_state_msg->pushed_button3 = false; // プッシュスイッチ3が押されていたらtrue
+  switches_state_msg->turned_on_dip0 = true; // DIPスイッチ0がONならtrue
+  switches_state_msg->turned_on_dip1 = false; // DIPスイッチ1がONならtrue
+  switches_state_msg->pushed_shutdown= true; // シャットダウンスイッチがONならtrue
+  pub_switches_state_->publish(std::move(switches_state_msg));
+
+  // オムニホイール回転速度をパブリッシュ
+  auto wheel_velocities_msg = std::make_unique<frootspi_msgs::msg::WheelVelocities>();
+  wheel_velocities_msg->front_left = 1.0; // 左前ホイール回転速度 [rad/sec]
+  wheel_velocities_msg->front_right = 1.0; // 右前ホイール回転速度 [rad/sec]
+  wheel_velocities_msg->back_center = 1.0; // 後ホイール回転速度 [rad/sec]
+  pub_present_wheel_velocities_->publish(std::move(wheel_velocities_msg));
+
+  // IMUセンサの情報をパブリッシュ
+
 }
 
 void Driver::callback_dribble_power(const frootspi_msgs::msg::DribblePower::SharedPtr msg)

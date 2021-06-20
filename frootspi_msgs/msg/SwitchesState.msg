@@ -5,8 +5,8 @@ bool pushed_button2
 bool pushed_button3
 
 # DIPスイッチ
-bool turend_on_dip0
-bool turend_on_dip2
+bool turned_on_dip0
+bool turned_on_dip1
 
 # シャットダウンスイッチ
-bool pushed_shutdwon
+bool pushed_shutdown
