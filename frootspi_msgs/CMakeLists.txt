@@ -17,10 +17,13 @@ endif()
 
 find_package(ament_cmake REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
+find_package(std_msgs REQUIRED)
 
 set(msg_files
   "msg/BallDetection.msg"
   "msg/BatteryVoltage.msg"
+  "msg/FrootsPiCommand.msg"
+  "msg/FrootsPiCommands.msg"
   "msg/DribblePower.msg"
   "msg/SwitchesState.msg"
   "msg/WheelVelocities.msg"
