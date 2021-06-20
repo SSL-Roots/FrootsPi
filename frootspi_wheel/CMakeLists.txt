@@ -36,7 +36,7 @@ ament_target_dependencies(frootspi_wheel_component
   rclcpp_components
   rclcpp_lifecycle
 )
-rclcpp_components_register_nodes(frootspi_wheel_component "frootspi_wheel::Driver")
+rclcpp_components_register_nodes(frootspi_wheel_component "frootspi_wheel::WheelNode")
 
 add_executable(frootspi_wheel_node src/main.cpp)
 target_link_libraries(frootspi_wheel_node frootspi_wheel_component)
