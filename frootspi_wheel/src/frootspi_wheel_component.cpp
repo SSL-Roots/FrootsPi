@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "frootspi_wheel/frootspi_wheel_component.hpp"
+#include "geometry_msgs/msg/twist.hpp"
 #include "lifecycle_msgs/srv/change_state.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/int16.hpp"
@@ -40,12 +41,22 @@ WheelNode::WheelNode(const rclcpp::NodeOptions & options)
 
 
 CallbackReturn WheelNode::on_configure(const rclcpp_lifecycle::State &)
-{
+{  
+  RCLCPP_INFO(this->get_logger(), "on_configure() is called.");
+
+  using namespace std::placeholders;  // for _1, _2, _3...
+
+  sub_target_velocity_ = create_subscription<geometry_msgs::msg::Twist>(
+  "target_velocity", 1, std::bind(&WheelNode::callback_target_velocity, this, _1));
+
+  std::cout << "Configured!" << std::endl;
+
   return CallbackReturn::SUCCESS;
 }
 
 CallbackReturn WheelNode::on_activate(const rclcpp_lifecycle::State &)
 {
+  RCLCPP_INFO(this->get_logger(), "on_activate() is called.");
   return CallbackReturn::SUCCESS;
 }
 
@@ -62,6 +73,12 @@ CallbackReturn WheelNode::on_cleanup(const rclcpp_lifecycle::State &)
 CallbackReturn WheelNode::on_shutdown(const rclcpp_lifecycle::State &)
 {
   return CallbackReturn::SUCCESS;
+}
+
+void WheelNode::callback_target_velocity(const geometry_msgs::msg::Twist::SharedPtr msg)
+{
+  std::cout << "Twist received!" << std::endl;
+  std::cout << "Twist received!" << msg->linear.x << std::endl;
 }
 
 }  // namespace frootspi_wheel

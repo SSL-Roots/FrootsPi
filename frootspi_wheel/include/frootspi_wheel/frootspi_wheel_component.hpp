@@ -15,6 +15,7 @@
 #ifndef FROOTSPI_WHEEL__FROOTSPI_WHEEL_COMPONENT_HPP_
 #define FROOTSPI_WHEEL__FROOTSPI_WHEEL_COMPONENT_HPP_
 
+#include "geometry_msgs/msg/twist.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_lifecycle/lifecycle_node.hpp"
 #include "rclcpp_lifecycle/lifecycle_publisher.hpp"
@@ -41,6 +42,13 @@ private:
   on_cleanup(const rclcpp_lifecycle::State &);
   rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
   on_shutdown(const rclcpp_lifecycle::State &);
+
+  // subscribers
+  std::shared_ptr<rclcpp::Subscription<geometry_msgs::msg::Twist>>
+  sub_target_velocity_;
+
+  // subscription callbacks
+  void callback_target_velocity(const geometry_msgs::msg::Twist::SharedPtr msg);
 };
 
 }  // namespace frootspi_wheel
