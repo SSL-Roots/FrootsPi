@@ -20,6 +20,7 @@
 #include <vector>
 
 #include "frootspi_hardware/visibility_control.h"
+#include "frootspi_hardware/io_expander.hpp"
 #include "frootspi_msgs/msg/ball_detection.hpp"
 #include "frootspi_msgs/msg/battery_voltage.hpp"
 #include "frootspi_msgs/msg/dribble_power.hpp"
@@ -105,6 +106,7 @@ private:
   rclcpp::TimerBase::SharedPtr polling_timer_;
 
   int pi_;
+  IOExpander io_expander_;
 };
 
 }  // namespace frootspi_hardware
