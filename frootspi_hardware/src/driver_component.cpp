@@ -71,12 +71,10 @@ void Driver::on_polling_timer()
 
   // スイッチ状態をパブリッシュ
   auto switches_state_msg = std::make_unique<frootspi_msgs::msg::SwitchesState>();
-  switches_state_msg->pushed_button0 = true;  // プッシュスイッチ0が押されていたらtrue
-  switches_state_msg->pushed_button1 = false;  // プッシュスイッチ1が押されていたらtrue
-  switches_state_msg->pushed_button2 = true;  // プッシュスイッチ2が押されていたらtrue
-  switches_state_msg->pushed_button3 = false;  // プッシュスイッチ3が押されていたらtrue
-  switches_state_msg->turned_on_dip0 = true;  // DIPスイッチ0がONならtrue
-  switches_state_msg->turned_on_dip1 = false;  // DIPスイッチ1がONならtrue
+  io_expander_.read(
+    switches_state_msg->pushed_button0, switches_state_msg->pushed_button1,
+    switches_state_msg->pushed_button2, switches_state_msg->pushed_button3,
+    switches_state_msg->turned_on_dip0, switches_state_msg->turned_on_dip1);
   switches_state_msg->pushed_shutdown = true;  // シャットダウンスイッチがONならtrue
   pub_switches_state_->publish(std::move(switches_state_msg));
 
@@ -211,6 +209,11 @@ CallbackReturn Driver::on_configure(const rclcpp_lifecycle::State &)
     return CallbackReturn::FAILURE;
   }
 
+  if (!io_expander_.open(pi_)) {
+    RCLCPP_ERROR(this->get_logger(), "Failed to connect IO expander.");
+    return CallbackReturn::FAILURE;
+  }
+
   return CallbackReturn::SUCCESS;
 }
 
@@ -260,6 +263,7 @@ CallbackReturn Driver::on_cleanup(const rclcpp_lifecycle::State &)
   pub_imu_.reset();
   polling_timer_.reset();
 
+  io_expander_.close();
   pigpio_stop(pi_);
 
   return CallbackReturn::SUCCESS;
@@ -277,6 +281,9 @@ CallbackReturn Driver::on_shutdown(const rclcpp_lifecycle::State &)
   pub_present_wheel_velocities_.reset();
   pub_imu_.reset();
   polling_timer_.reset();
+
+  io_expander_.close();
+  pigpio_stop(pi_);
 
   return CallbackReturn::SUCCESS;
 }
