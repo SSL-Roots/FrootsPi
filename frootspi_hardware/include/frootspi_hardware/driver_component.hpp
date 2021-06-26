@@ -105,6 +105,7 @@ private:
   rclcpp::TimerBase::SharedPtr polling_timer_;
 
   int pi_;
+  int gpio_ball_sensor_;
 };
 
 }  // namespace frootspi_hardware
