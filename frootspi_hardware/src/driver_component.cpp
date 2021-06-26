@@ -142,10 +142,13 @@ void Driver::on_set_left_led(
   const std_srvs::srv::SetBool::Request::SharedPtr request,
   std_srvs::srv::SetBool::Response::SharedPtr response)
 {
-  std::cout << "left_ledを操作するで:" << request->data << std::endl;
-
-  response->success = true;
-  response->message = "LEDをセットしたで";
+  if (io_expander_.set_led(request->data)) {
+    response->success = true;
+    response->message = "LED操作成功";
+  } else {
+    response->success = false;
+    response->message = "LED操作失敗";
+  }
 }
 
 void Driver::on_set_center_led(

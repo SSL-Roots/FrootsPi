@@ -133,7 +133,7 @@ bool IOExpander::read(
   return true;
 }
 
-bool IOExpander::write(const bool set_led)
+bool IOExpander::set_led(const bool turn_on)
 {
   char write_data = 0;
   char read_data = 0;
@@ -145,7 +145,7 @@ bool IOExpander::write(const bool set_led)
   }
 
   // 特定のビットだけを変更する
-  if (set_led) {
+  if (turn_on) {
     write_data = read_data | (1 << MCP23S08_GPIO_LED);
   } else {
     write_data = read_data & ~(1 << MCP23S08_GPIO_LED);

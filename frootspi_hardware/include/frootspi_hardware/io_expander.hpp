@@ -26,7 +26,7 @@ public:
   bool read(
     bool & pushed_button0, bool & pushed_button1, bool & pushed_button2,
     bool & pushed_button3, bool & turned_on_dip0, bool & turned_on_dip1);
-  bool write(const bool set_led);
+  bool set_led(const bool turn_on);
 
 private:
   bool control_register(const char addr, const char rw, const char write_data, char * read_data);
