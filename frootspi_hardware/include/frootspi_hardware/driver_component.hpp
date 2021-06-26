@@ -106,6 +106,7 @@ private:
   rclcpp::TimerBase::SharedPtr polling_timer_;
 
   int pi_;
+  int gpio_ball_sensor_;
   IOExpander io_expander_;
 };
 

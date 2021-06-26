@@ -47,7 +47,7 @@ void Driver::on_polling_timer()
 {
   // ボール検出をパブリッシュ
   auto ball_detection_msg = std::make_unique<frootspi_msgs::msg::BallDetection>();
-  ball_detection_msg->detected = gpio_read(pi_, 6);  // 検出したらtrueをセット
+  ball_detection_msg->detected = gpio_read(pi_, gpio_ball_sensor_);
   pub_ball_detection_->publish(std::move(ball_detection_msg));
 
   // バッテリー電圧をパブリッシュ
@@ -214,10 +214,15 @@ CallbackReturn Driver::on_configure(const rclcpp_lifecycle::State &)
     RCLCPP_ERROR(this->get_logger(), "Failed to connect pigpiod.");
     return CallbackReturn::FAILURE;
   }
+
+  declare_parameter("gpio_ball_sensor", 6);
+  gpio_ball_sensor_ = get_parameter("gpio_ball_sensor").get_value<int>();
+
+
   // add pigpio port setting
   // ball sensor setup
-  set_mode(pi_, 6, PI_INPUT);
-  set_pull_up_down(pi_, 6, PI_PUD_UP);
+  set_mode(pi_, gpio_ball_sensor_, PI_INPUT);
+  set_pull_up_down(pi_, gpio_ball_sensor_, PI_PUD_UP);
 
   if (!io_expander_.open(pi_)) {
     RCLCPP_ERROR(this->get_logger(), "Failed to connect IO expander.");

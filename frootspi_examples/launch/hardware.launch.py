@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import ExecuteProcess
 from launch.actions import RegisterEventHandler
@@ -22,6 +24,12 @@ from launch_ros.descriptions import ComposableNode
 
 
 def generate_launch_description():
+    gpio_config = os.path.join(
+        get_package_share_directory('frootspi_hardware'),
+        'config',
+        'gpio.yaml'
+    )
+
     container = ComposableNodeContainer(
         name='frootspi_container',
         namespace='',
@@ -32,6 +40,7 @@ def generate_launch_description():
                 package='frootspi_hardware',
                 plugin='frootspi_hardware::Driver',
                 name='hardware_driver',
+                parameters=[gpio_config],
                 extra_arguments=[{'use_intra_process_comms': True}],
                 ),
         ],
