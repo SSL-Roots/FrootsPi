@@ -35,6 +35,8 @@ using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface
 namespace frootspi_hardware
 {
 
+static const int GPIO_SHUTDOWN_SWITCH = 23;
+
 Driver::Driver(const rclcpp::NodeOptions & options)
 : rclcpp_lifecycle::LifecycleNode("hardware_driver", options),
   pi_(-1)
@@ -75,7 +77,8 @@ void Driver::on_polling_timer()
     switches_state_msg->pushed_button0, switches_state_msg->pushed_button1,
     switches_state_msg->pushed_button2, switches_state_msg->pushed_button3,
     switches_state_msg->turned_on_dip0, switches_state_msg->turned_on_dip1);
-  switches_state_msg->pushed_shutdown = true;  // シャットダウンスイッチがONならtrue
+  // シャットダウンスイッチは負論理なので、XORでビット反転させる
+  switches_state_msg->pushed_shutdown = gpio_read(pi_, GPIO_SHUTDOWN_SWITCH) ^ 1;
   pub_switches_state_->publish(std::move(switches_state_msg));
 
   // オムニホイール回転速度をパブリッシュ
@@ -213,6 +216,8 @@ CallbackReturn Driver::on_configure(const rclcpp_lifecycle::State &)
     RCLCPP_ERROR(this->get_logger(), "Failed to connect IO expander.");
     return CallbackReturn::FAILURE;
   }
+
+  set_mode(pi_, GPIO_SHUTDOWN_SWITCH, PI_INPUT);
 
   return CallbackReturn::SUCCESS;
 }
