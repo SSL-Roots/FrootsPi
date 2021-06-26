@@ -57,7 +57,8 @@ GPIO19にスイッチを接続し、次のコマンドを実行。
 
 ```sh
 # pigpioデーモンの起動（ログアウトするまで再実行不要）
-$ sudo pigpiod
+# オプション設定でサンプルレートを1に設定（PWM周波数を40kHzに設定するために必要）
+$ sudo pigpiod -s 1
 $ source ~/ros2_ws/install/setup.bash
 $ ros2 launch frootspi_examples hardware.launch.py 
 ```
