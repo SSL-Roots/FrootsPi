@@ -92,7 +92,10 @@ void Driver::on_polling_timer()
 
 void Driver::callback_dribble_power(const frootspi_msgs::msg::DribblePower::SharedPtr msg)
 {
-  std::cout << "ドリブルパワーは" << std::to_string(msg->power) << std::endl;
+  unsigned int dribble_duty_cycle;
+  dribble_duty_cycle = 25 - (unsigned int)( 25. * msg->power); // 25をDefineにしたい 負論理のため反転
+  set_PWM_dutycycle(pi_, 13, dribble_duty_cycle);
+  std::cout << "DutyCycleは" << std::to_string(dribble_duty_cycle) << std::endl;
 }
 
 void Driver::callback_wheel_velocities(const frootspi_msgs::msg::WheelVelocities::SharedPtr msg)
@@ -214,6 +217,17 @@ CallbackReturn Driver::on_configure(const rclcpp_lifecycle::State &)
   // ball sensor setup
   set_mode(pi_, 6, PI_INPUT);
   set_pull_up_down(pi_, 6, PI_PUD_UP);
+  
+  // dribbler setup
+  set_mode(pi_, 13, PI_OUTPUT);
+  set_PWM_frequency(pi_, 13, 40000); // frequency LSB:Hz
+  set_PWM_range(pi_, 13, 25);         // range LSB:us
+  set_PWM_dutycycle(pi_, 13, 25);      // dutycycle LSB:us
+
+  // charge supply MOS-FET setup test phase all time off
+  set_mode(pi_, 5, PI_OUTPUT);
+  set_pull_up_down(pi_, 5, PI_PUD_OFF);
+  gpio_write(pi_, 5, 0);
 
   return CallbackReturn::SUCCESS;
 }
@@ -247,6 +261,9 @@ CallbackReturn Driver::on_deactivate(const rclcpp_lifecycle::State &)
   pub_present_wheel_velocities_->on_deactivate();
   pub_imu_->on_deactivate();
   polling_timer_->cancel();
+
+  // dribbler PWM OFF
+  set_PWM_dutycycle(pi_, 13, 0);      // dutycycle LSB:us
 
   return CallbackReturn::SUCCESS;
 }
