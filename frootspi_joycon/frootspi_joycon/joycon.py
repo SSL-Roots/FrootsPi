@@ -16,12 +16,13 @@
 # limitations under the License.
 
 
+import math
+
 import rclpy
 from geometry_msgs.msg import Twist
 from rclpy.node import Node
 from sensor_msgs.msg import Joy
-from std_msgs.msg import Float32
-from std_msgs.msg import Int16
+from std_msgs.msg import Float32, Int16
 
 
 class JoyCon(Node):
@@ -56,15 +57,22 @@ class JoyCon(Node):
         self._pub_kick_pow = self.create_publisher(Float32, 'kick_power', 1)
         self._pub_kick_flag = self.create_publisher(Int16, 'kick_flag', 1)
 
+        self._MAX_VEL_SURGE = 1.0
+        self._MAX_VEL_SWAY = 1.0
+        self._MAX_VEL_ANGULAR = math.pi
+
     def _callback_joy(self, msg):
         target_velocity = Twist()
         dribble_power = Float32()
         kick_power = Float32()
         kick_flag = Int16()
 
-        target_velocity.linear.x = 0.1  # m/sec
-        target_velocity.linear.y = 0.2  # m/sec
-        target_velocity.angular.z = 0.3  # rad/sec
+        target_velocity.linear.x = \
+            msg.axes[self._AXIS_VEL_SURGE] * self._MAX_VEL_SURGE  # m/sec
+        target_velocity.linear.y = \
+            msg.axes[self._AXIS_VEL_SWAY] * self._MAX_VEL_SWAY  # m/sec
+        target_velocity.angular.z = \
+            msg.axes[self._AXIS_VEL_ANGULAR] * self._MAX_VEL_ANGULAR  # rad/sec
         self._pub_target_vel.publish(target_velocity)
 
         dribble_power.data = 0.5  # 0.0 ~ 1.0
