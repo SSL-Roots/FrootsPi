@@ -6,4 +6,4 @@ joycon:
     button_unlock_kick    : 5 # R1ボタン
     axis_vel_sway         : 0 # 左ステッィク左右(左が負)
     axis_vel_surge        : 1 # 左ステッィク上下(上が負)
-    axis_vel_angular      : 2 # 右ステッィク左右(左が負)
+    axis_vel_angular      : 3 # 右ステッィク左右(左が負)
