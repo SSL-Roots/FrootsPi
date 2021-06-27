@@ -1,3 +1,9 @@
 joycon:
   ros__parameters:
-    button_straight_kick : 1  # ○ボタン
+    button_chip_kick      : 0 # ×ボタン
+    button_straight_kick  : 1 # ○ボタン    
+    button_unlock_move    : 4 # L1ボタン
+    button_unlock_kick    : 5 # R1ボタン
+    axis_vel_sway         : 0 # 左ステッィク左右(左が負)
+    axis_vel_surge        : 1 # 左ステッィク上下(上が負)
+    axis_vel_angular      : 2 # 右ステッィク左右(左が負)
