@@ -117,7 +117,7 @@ void WheelVector::robotVelToWheelRotateVels(
   double * v0, double * v1, double * v2)
 {
   /*
-  * ロボット速度から各車輪モータの回転速度に変換する
+  * ロボット速度から各車輪の回転速度に変換する
   */
 
   double v0_mps = (CONST_V0_COEFFICIENT_VX_ * vx) + (CONST_V0_COEFFICIENT_VY_ * vy) +

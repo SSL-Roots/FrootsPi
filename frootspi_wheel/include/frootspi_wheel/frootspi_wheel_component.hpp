@@ -70,7 +70,7 @@ private:
   const double CONST_V1_COEFFICIENT_VX_ = -0.5, CONST_V1_COEFFICIENT_VY_ = -0.8660254;
   const double CONST_V2_COEFFICIENT_VX_ = 1, CONST_V2_COEFFICIENT_VY_ = 0;
   const double CONST_MACHINE_RADIUS_ = 0.07;
-  const double CONST_WHEEL_RADIUS_ = 28;
+  const double CONST_WHEEL_RADIUS_ = 0.028;
 };
 
 }  // namespace frootspi_wheel
