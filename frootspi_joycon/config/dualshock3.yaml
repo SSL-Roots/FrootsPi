@@ -1,0 +1,3 @@
+joycon:
+  ros__parameters:
+    button_straight_kick : 1  # ○ボタン
