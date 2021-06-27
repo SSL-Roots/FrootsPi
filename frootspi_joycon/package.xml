@@ -12,9 +12,6 @@
   <depend>frootspi_msgs</depend>
   <depend>geometry_msgs</depend>
   <depend>joy_linux</depend>
-  <depend>rclcpp</depend>
-  <depend>rclcpp_components</depend>
-  <depend>rclcpp_lifecycle</depend>
   <depend>rclpy</depend>
   <depend>std_msgs</depend>
 
