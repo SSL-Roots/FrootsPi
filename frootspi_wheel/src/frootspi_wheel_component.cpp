@@ -43,7 +43,7 @@ WheelNode::WheelNode(const rclcpp::NodeOptions & options)
 
 CallbackReturn WheelNode::on_configure(const rclcpp_lifecycle::State &)
 {  
-  RCLCPP_INFO(this->get_logger(), "on_configure() is called.");
+  RCLCPP_DEBUG(this->get_logger(), "on_configure() is called.");
 
   using namespace std::placeholders;  // for _1, _2, _3...
 
@@ -62,7 +62,7 @@ CallbackReturn WheelNode::on_configure(const rclcpp_lifecycle::State &)
 
 CallbackReturn WheelNode::on_activate(const rclcpp_lifecycle::State &)
 {
-  RCLCPP_INFO(this->get_logger(), "on_activate() is called.");
+  RCLCPP_DEBUG(this->get_logger(), "on_activate() is called.");
 
   pub_wheel_velocities_->on_activate();
 
@@ -71,6 +71,8 @@ CallbackReturn WheelNode::on_activate(const rclcpp_lifecycle::State &)
 
 CallbackReturn WheelNode::on_deactivate(const rclcpp_lifecycle::State &)
 {
+  RCLCPP_DEBUG(this->get_logger(), "on_deactivate() is called.");
+
   pub_wheel_velocities_->on_deactivate();
 
   return CallbackReturn::SUCCESS;
@@ -78,20 +80,23 @@ CallbackReturn WheelNode::on_deactivate(const rclcpp_lifecycle::State &)
 
 CallbackReturn WheelNode::on_cleanup(const rclcpp_lifecycle::State &)
 {
+  RCLCPP_DEBUG(this->get_logger(), "on_cleanup() is called.");
+
   pub_wheel_velocities_.reset();
   return CallbackReturn::SUCCESS;
 }
 
 CallbackReturn WheelNode::on_shutdown(const rclcpp_lifecycle::State &)
 {
+  RCLCPP_DEBUG(this->get_logger(), "on_shutdown() is called.");
+
   pub_wheel_velocities_.reset();
   return CallbackReturn::SUCCESS;
 }
 
 void WheelNode::callback_target_velocity(const geometry_msgs::msg::Twist::SharedPtr msg)
 {
-  std::cout << "Twist received!" << std::endl;
-  std::cout << "Twist received!" << msg->linear.x << std::endl;
+  RCLCPP_DEBUG(this->get_logger(), "target velocity received.");
 
   // calc
   double v0, v1, v2;
