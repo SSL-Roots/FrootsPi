@@ -42,7 +42,7 @@ WheelNode::WheelNode(const rclcpp::NodeOptions & options)
 
 
 CallbackReturn WheelNode::on_configure(const rclcpp_lifecycle::State &)
-{  
+{
   RCLCPP_DEBUG(this->get_logger(), "on_configure() is called.");
 
   using namespace std::placeholders;  // for _1, _2, _3...
@@ -53,7 +53,7 @@ CallbackReturn WheelNode::on_configure(const rclcpp_lifecycle::State &)
 
   // init subscribers
   sub_target_velocity_ = create_subscription<geometry_msgs::msg::Twist>(
-  "target_velocity", 1, std::bind(&WheelNode::callback_target_velocity, this, _1));
+    "target_velocity", 1, std::bind(&WheelNode::callback_target_velocity, this, _1));
 
   std::cout << "Configured!" << std::endl;
 
@@ -106,21 +106,26 @@ void WheelNode::callback_target_velocity(const geometry_msgs::msg::Twist::Shared
   // publish
   auto wheel_velocities_msg = std::make_unique<frootspi_msgs::msg::WheelVelocities>();
   wheel_velocities_msg->front_left = v0;
-  wheel_velocities_msg->front_right= v1;
-  wheel_velocities_msg->back_center= v2;
+  wheel_velocities_msg->front_right = v1;
+  wheel_velocities_msg->back_center = v2;
   pub_wheel_velocities_->publish(std::move(wheel_velocities_msg));
 }
 
 
-void WheelVector::robotVelToWheelRotateVels(const double & vx, const double & vy, const double & vw, double * v0, double * v1, double * v2)
+void WheelVector::robotVelToWheelRotateVels(
+  const double & vx, const double & vy, const double & vw,
+  double * v0, double * v1, double * v2)
 {
   /*
   * ロボット速度から各車輪モータの回転速度に変換する
   */
 
-  double v0_mps= (CONST_V0_COEFFICIENT_VX_ * vx) + (CONST_V0_COEFFICIENT_VY_ * vy) + (CONST_MACHINE_RADIUS_ * vw );
-  double v1_mps= (CONST_V1_COEFFICIENT_VX_ * vx) + (CONST_V1_COEFFICIENT_VY_ * vy) + (CONST_MACHINE_RADIUS_ * vw );
-  double v2_mps= (CONST_V2_COEFFICIENT_VX_ * vx) + (CONST_V2_COEFFICIENT_VY_ * vy) + (CONST_MACHINE_RADIUS_ * vw );
+  double v0_mps = (CONST_V0_COEFFICIENT_VX_ * vx) + (CONST_V0_COEFFICIENT_VY_ * vy) +
+    (CONST_MACHINE_RADIUS_ * vw );
+  double v1_mps = (CONST_V1_COEFFICIENT_VX_ * vx) + (CONST_V1_COEFFICIENT_VY_ * vy) +
+    (CONST_MACHINE_RADIUS_ * vw );
+  double v2_mps = (CONST_V2_COEFFICIENT_VX_ * vx) + (CONST_V2_COEFFICIENT_VY_ * vy) +
+    (CONST_MACHINE_RADIUS_ * vw );
 
   double v0_radps = v0_mps / CONST_WHEEL_RADIUS_ * CONST_GEAR_RATIO_;
   double v1_radps = v1_mps / CONST_WHEEL_RADIUS_ * CONST_GEAR_RATIO_;

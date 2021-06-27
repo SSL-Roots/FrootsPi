@@ -30,8 +30,8 @@ namespace frootspi_wheel
 class WheelNode : public rclcpp_lifecycle::LifecycleNode
 {
 public:
-    FROOTSPI_WHEEL_PUBLIC
-    explicit WheelNode(const rclcpp::NodeOptions & options);
+  FROOTSPI_WHEEL_PUBLIC
+  explicit WheelNode(const rclcpp::NodeOptions & options);
 
 private:
   rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
@@ -61,15 +61,17 @@ private:
 class WheelVector
 {
 public:
-  void robotVelToWheelRotateVels(const double & vx, const double & vy, const double & vw, double * v0, double * v1, double * v2);
-  
+  void robotVelToWheelRotateVels(
+    const double & vx, const double & vy, const double & vw,
+    double * v0, double * v1, double * v2);
+
 private:
-  const double CONST_V0_COEFFICIENT_VX_ = -0.5,       CONST_V0_COEFFICIENT_VY_ = 0.8660254;
-  const double CONST_V1_COEFFICIENT_VX_ = -0.5,       CONST_V1_COEFFICIENT_VY_ = -0.8660254;
-  const double CONST_V2_COEFFICIENT_VX_ = 1,          CONST_V2_COEFFICIENT_VY_ = 0;
-  const double CONST_MACHINE_RADIUS_  = 0.07;
-  const double CONST_WHEEL_RADIUS_    = 28;
-  const double CONST_GEAR_RATIO_      = 2.4;
+  const double CONST_V0_COEFFICIENT_VX_ = -0.5, CONST_V0_COEFFICIENT_VY_ = 0.8660254;
+  const double CONST_V1_COEFFICIENT_VX_ = -0.5, CONST_V1_COEFFICIENT_VY_ = -0.8660254;
+  const double CONST_V2_COEFFICIENT_VX_ = 1, CONST_V2_COEFFICIENT_VY_ = 0;
+  const double CONST_MACHINE_RADIUS_ = 0.07;
+  const double CONST_WHEEL_RADIUS_ = 28;
+  const double CONST_GEAR_RATIO_ = 2.4;
 };
 
 }  // namespace frootspi_wheel
