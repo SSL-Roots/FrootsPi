@@ -127,9 +127,9 @@ void WheelVector::robotVelToWheelRotateVels(
   double v2_mps = (CONST_V2_COEFFICIENT_VX_ * vx) + (CONST_V2_COEFFICIENT_VY_ * vy) +
     (CONST_MACHINE_RADIUS_ * vw );
 
-  double v0_radps = v0_mps / CONST_WHEEL_RADIUS_ * CONST_GEAR_RATIO_;
-  double v1_radps = v1_mps / CONST_WHEEL_RADIUS_ * CONST_GEAR_RATIO_;
-  double v2_radps = v2_mps / CONST_WHEEL_RADIUS_ * CONST_GEAR_RATIO_;
+  double v0_radps = v0_mps / CONST_WHEEL_RADIUS_;
+  double v1_radps = v1_mps / CONST_WHEEL_RADIUS_;
+  double v2_radps = v2_mps / CONST_WHEEL_RADIUS_;
 
   *v0 = v0_radps;
   *v1 = v1_radps;

@@ -71,7 +71,6 @@ private:
   const double CONST_V2_COEFFICIENT_VX_ = 1, CONST_V2_COEFFICIENT_VY_ = 0;
   const double CONST_MACHINE_RADIUS_ = 0.07;
   const double CONST_WHEEL_RADIUS_ = 28;
-  const double CONST_GEAR_RATIO_ = 2.4;
 };
 
 }  // namespace frootspi_wheel
