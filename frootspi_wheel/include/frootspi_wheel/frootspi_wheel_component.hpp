@@ -15,6 +15,7 @@
 #ifndef FROOTSPI_WHEEL__FROOTSPI_WHEEL_COMPONENT_HPP_
 #define FROOTSPI_WHEEL__FROOTSPI_WHEEL_COMPONENT_HPP_
 
+#include <memory>
 
 #include "frootspi_msgs/msg/wheel_velocities.hpp"
 #include "geometry_msgs/msg/twist.hpp"
