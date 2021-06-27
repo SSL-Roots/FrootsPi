@@ -20,7 +20,6 @@ import rclpy
 from geometry_msgs.msg import Twist
 from rclpy.node import Node
 from sensor_msgs.msg import Joy
-from std_msgs.msg import Bool
 from std_msgs.msg import Float32
 from std_msgs.msg import Int16
 
@@ -79,13 +78,13 @@ class JoyCon(Node):
 
         # キック処理
         if kick_command == 6:
-            kick_power.data = 0.3 # m/s
+            kick_power.data = 0.3  # m/s
             kick_flag.data = 1  # 0:未定, 1:ストレート, 2:チップ, 3:放電
         elif kick_command == 5:
-            kick_power.data = 0.3 # m/s
+            kick_power.data = 0.3  # m/s
             kick_flag.data = 2  # 0:未定, 1:ストレート, 2:チップ, 3:放電
         else:
-            kick_power.data = 0.0 # m/s
+            kick_power.data = 0.0  # m/s
             kick_flag.data = 0  # 0:未定, 1:ストレート, 2:チップ, 3:放電
 
         self._pub_kick_pow.publish(kick_power)
