@@ -93,13 +93,39 @@ void WheelNode::callback_target_velocity(const geometry_msgs::msg::Twist::Shared
   std::cout << "Twist received!" << std::endl;
   std::cout << "Twist received!" << msg->linear.x << std::endl;
 
+  // calc
+  double v0, v1, v2;
+  WheelVector wv;
+  wv.robotVelToWheelRotateVels(msg->linear.x, msg->linear.y, msg->angular.z, &v0, &v1, &v2);
+
   // publish
   auto wheel_velocities_msg = std::make_unique<frootspi_msgs::msg::WheelVelocities>();
-  wheel_velocities_msg->front_left = msg->linear.x;
-  wheel_velocities_msg->front_right= msg->linear.y;
-  wheel_velocities_msg->back_center= msg->linear.z;
+  wheel_velocities_msg->front_left = v0;
+  wheel_velocities_msg->front_right= v1;
+  wheel_velocities_msg->back_center= v2;
   pub_wheel_velocities_->publish(std::move(wheel_velocities_msg));
 }
+
+
+void WheelVector::robotVelToWheelRotateVels(const double & vx, const double & vy, const double & vw, double * v0, double * v1, double * v2)
+{
+  /*
+  * ロボット速度から各車輪モータの回転速度に変換する
+  */
+
+  double v0_mps= (CONST_V0_COEFFICIENT_VX_ * vx) + (CONST_V0_COEFFICIENT_VY_ * vy) + (CONST_MACHINE_RADIUS_ * vw );
+  double v1_mps= (CONST_V1_COEFFICIENT_VX_ * vx) + (CONST_V1_COEFFICIENT_VY_ * vy) + (CONST_MACHINE_RADIUS_ * vw );
+  double v2_mps= (CONST_V2_COEFFICIENT_VX_ * vx) + (CONST_V2_COEFFICIENT_VY_ * vy) + (CONST_MACHINE_RADIUS_ * vw );
+
+  double v0_radps = v0_mps / CONST_WHEEL_RADIUS_ * CONST_GEAR_RATIO_;
+  double v1_radps = v1_mps / CONST_WHEEL_RADIUS_ * CONST_GEAR_RATIO_;
+  double v2_radps = v2_mps / CONST_WHEEL_RADIUS_ * CONST_GEAR_RATIO_;
+
+  *v0 = v0_radps;
+  *v1 = v1_radps;
+  *v2 = v2_radps;
+}
+
 
 }  // namespace frootspi_wheel
 
