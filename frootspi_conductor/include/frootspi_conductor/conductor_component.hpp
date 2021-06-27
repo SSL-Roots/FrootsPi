@@ -25,6 +25,9 @@
 #include "rclcpp_lifecycle/lifecycle_node.hpp"
 #include "rclcpp_lifecycle/lifecycle_publisher.hpp"
 
+#include "std_msgs/msg/float32.hpp"
+#include "frootspi_msgs/msg/dribble_power.hpp"
+
 namespace frootspi_conductor
 {
 
@@ -53,7 +56,11 @@ private:
   std::shared_ptr<rclcpp::Subscription<frootspi_msgs::msg::FrootsPiCommands>>
   sub_frootspi_commands_;
 
+  std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<frootspi_msgs::msg::DribblePower>>
+  pub_dribble_power_;
+
   int my_id_;
+  float power_;
 };
 
 }  // namespace frootspi_conductor
