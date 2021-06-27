@@ -31,11 +31,23 @@ class JoyCon(Node):
         super().__init__('joycon')
 
         parameters = [
+            ('button_chip_kick', 0),
             ('button_straight_kick', 1),
+            ('button_unlock_move', 4),
+            ('button_unlock_kick', 5),
+            ('axis_vel_sway', 0),
+            ('axis_vel_surge', 1),
+            ('axis_vel_angular', 2),
         ]
         self.declare_parameters('', parameters)
 
+        self._BUTTON_CHIP_KICK = self.get_parameter('button_chip_kick').value
         self._BUTTON_STRAIGHT_KICK = self.get_parameter('button_straight_kick').value
+        self._BUTTON_UNLOCK_MOVE = self.get_parameter('button_unlock_move').value
+        self._BUTTON_UNLOCK_KICK = self.get_parameter('button_unlock_kick').value
+        self._AXIS_VEL_SWAY = self.get_parameter('axis_vel_sway').value
+        self._AXIS_VEL_SURGE = self.get_parameter('axis_vel_surge').value
+        self._AXIS_VEL_ANGULAR = self.get_parameter('axis_vel_angular').value
 
         self._sub_joy = self.create_subscription(
             Joy, 'joy', self._callback_joy, 1)
@@ -59,9 +71,19 @@ class JoyCon(Node):
         dribble_power.data = 0.5  # 0.0 ~ 1.0
         self._pub_dribble_pow.publish(dribble_power)
 
-        if msg.buttons[self._BUTTON_STRAIGHT_KICK]:
+        # kick_command 6:ストレート, 5:チップ
+        kick_command = \
+            (int(msg.buttons[self._BUTTON_UNLOCK_KICK]) << 2)\
+            + (int(msg.buttons[self._BUTTON_STRAIGHT_KICK]) << 1) \
+            + int(msg.buttons[self._BUTTON_CHIP_KICK])
+
+        # キック処理
+        if kick_command == 6:
             kick_power.data = 0.3 # m/s
             kick_flag.data = 1  # 0:未定, 1:ストレート, 2:チップ, 3:放電
+        elif kick_command == 5:
+            kick_power.data = 0.3 # m/s
+            kick_flag.data = 2  # 0:未定, 1:ストレート, 2:チップ, 3:放電
         else:
             kick_power.data = 0.0 # m/s
             kick_flag.data = 0  # 0:未定, 1:ストレート, 2:チップ, 3:放電
