@@ -33,6 +33,7 @@ class JoyCon(Node):
         parameters = [
             ('button_chip_kick', 0),
             ('button_straight_kick', 1),
+            ('button_dribble', 3),
             ('button_unlock_move', 4),
             ('button_unlock_kick', 5),
             ('axis_vel_sway', 0),
@@ -43,6 +44,7 @@ class JoyCon(Node):
 
         self._BUTTON_CHIP_KICK = self.get_parameter('button_chip_kick').value
         self._BUTTON_STRAIGHT_KICK = self.get_parameter('button_straight_kick').value
+        self._BUTTON_DRIBBLE = self.get_parameter('button_dribble').value
         self._BUTTON_UNLOCK_MOVE = self.get_parameter('button_unlock_move').value
         self._BUTTON_UNLOCK_KICK = self.get_parameter('button_unlock_kick').value
         self._AXIS_VEL_SWAY = self.get_parameter('axis_vel_sway').value
@@ -75,7 +77,11 @@ class JoyCon(Node):
             msg.axes[self._AXIS_VEL_ANGULAR] * self._MAX_VEL_ANGULAR  # rad/sec
         self._pub_target_vel.publish(target_velocity)
 
-        dribble_power.data = 0.5  # 0.0 ~ 1.0
+        if msg.buttons[self._BUTTON_UNLOCK_KICK] and msg.buttons[self._BUTTON_DRIBBLE]:
+            dribble_power.data = 0.5  # 0.0 ~ 1.0
+        else:
+            dribble_power.data = 0.0  # 0.0 ~ 1.0
+
         self._pub_dribble_pow.publish(dribble_power)
 
         # kick_command 6:ストレート, 5:チップ
