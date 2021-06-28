@@ -58,9 +58,10 @@ private:
 
   std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<frootspi_msgs::msg::DribblePower>>
   pub_dribble_power_;
+  std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<std_msgs::msg::Float32>>
+  pub_kick_power_;
 
   int my_id_;
-  float power_;
 };
 
 }  // namespace frootspi_conductor
