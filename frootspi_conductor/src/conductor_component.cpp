@@ -51,12 +51,19 @@ void Conductor::callback_commands(const frootspi_msgs::msg::FrootsPiCommands::Sh
       std::cout<<"ドリブルパワーは"<<std::to_string(command.dribble_power)<<"です"<<std::endl;
       std::cout<<"キックパワーは"<<std::to_string(command.kick_power)<<"です"<<std::endl;
 
+      // キックフラグの定義, 現状チップキックかどうかだけ
+      // 0: 未定, 1: ストレート, 2: チップ, 3: 放電
+      kick_command_ = command.chip_enable + 1;
+
       // publish
       auto dribble_power = std::make_unique<frootspi_msgs::msg::DribblePower>();
       dribble_power->power = command.dribble_power;
       pub_dribble_power_->publish(std::move(dribble_power));
       auto kick_power = std::make_unique<std_msgs::msg::Float32>();
       kick_power->data = command.kick_power;
+      pub_kick_power_->publish(std::move(kick_power));
+      auto kick_flag = std::make_unique<std_msgs::msg::Int16>();
+      kick_flag->data = kick_command_;
       pub_kick_power_->publish(std::move(kick_power));
 
       break;
@@ -83,6 +90,7 @@ CallbackReturn Conductor::on_configure(const rclcpp_lifecycle::State &)
   pub_command_ = create_publisher<frootspi_msgs::msg::FrootsPiCommand>("command", 1);
   pub_dribble_power_ = create_publisher<frootspi_msgs::msg::DribblePower>("dribble_power", 1);
   pub_kick_power_ = create_publisher<std_msgs::msg::Float32>("kick_power", 1);
+  pub_kick_flag_ = create_publisher<std_msgs::msg::Int16>("kick_flag", 1);
 
   return CallbackReturn::SUCCESS;
 }
@@ -94,6 +102,7 @@ CallbackReturn Conductor::on_activate(const rclcpp_lifecycle::State &)
   pub_command_->on_activate();
   pub_dribble_power_->on_activate();
   pub_kick_power_->on_activate();
+  pub_kick_flag_->on_activate();
 
   return CallbackReturn::SUCCESS;
 }
@@ -105,6 +114,7 @@ CallbackReturn Conductor::on_deactivate(const rclcpp_lifecycle::State &)
   pub_command_->on_deactivate();
   pub_dribble_power_->on_deactivate();
   pub_kick_power_->on_deactivate();
+  pub_kick_flag_->on_deactivate();
 
   return CallbackReturn::SUCCESS;
 }
@@ -116,6 +126,7 @@ CallbackReturn Conductor::on_cleanup(const rclcpp_lifecycle::State &)
   pub_command_.reset();
   pub_dribble_power_.reset();
   pub_kick_power_.reset();
+  pub_kick_flag_.reset();
 
   return CallbackReturn::SUCCESS;
 }
@@ -127,6 +138,7 @@ CallbackReturn Conductor::on_shutdown(const rclcpp_lifecycle::State &)
   pub_command_.reset();
   pub_dribble_power_.reset();
   pub_kick_power_.reset();
+  pub_kick_flag_.reset();
 
   return CallbackReturn::SUCCESS;
 }
