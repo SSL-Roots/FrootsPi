@@ -47,6 +47,18 @@ def generate_launch_description():
         output='screen',
     )
 
+    start_pigpiod = ExecuteProcess(
+        cmd=['sudo pigpiod'],
+        shell=True,
+        output='screen',
+    )
+
+    start_socket_can0 = ExecuteProcess(
+        cmd=['sudo ip link set can0 up type can bitrate 1000000'],
+        shell=True,
+        output='screen',
+    )
+
     configure_node = ExecuteProcess(
         cmd=['ros2 lifecycle set hardware_driver configure'],
         shell=True,
@@ -60,6 +72,8 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
+        start_pigpiod,
+        start_socket_can0,
         RegisterEventHandler(
             event_handler=OnProcessStart(
                 target_action=container,
