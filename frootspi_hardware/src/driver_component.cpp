@@ -98,9 +98,8 @@ void Driver::callback_dribble_power(const frootspi_msgs::msg::DribblePower::Shar
 
 void Driver::callback_wheel_velocities(const frootspi_msgs::msg::WheelVelocities::SharedPtr msg)
 {
-  std::cout << "車輪目標回転速度は、左前" << std::to_string(msg->front_left);
-  std::cout << "、真ん中後" << std::to_string(msg->back_center);
-  std::cout << "、右前" << std::to_string(msg->back_center) << std::endl;
+  wheel_controller_.set_wheel_velocities(
+    msg->front_right, msg->front_left, msg->back_center);
 }
 
 void Driver::on_kick(
@@ -226,6 +225,11 @@ CallbackReturn Driver::on_configure(const rclcpp_lifecycle::State &)
 
   if (!io_expander_.open(pi_)) {
     RCLCPP_ERROR(this->get_logger(), "Failed to connect IO expander.");
+    return CallbackReturn::FAILURE;
+  }
+
+  if (!wheel_controller_.device_open()) {
+    RCLCPP_ERROR(this->get_logger(), "Failed to connect wheel controller.");
     return CallbackReturn::FAILURE;
   }
 
