@@ -21,6 +21,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -36,6 +37,11 @@ namespace frootspi_hardware
 {
 
 static const int GPIO_SHUTDOWN_SWITCH = 23;
+static const int GPIO_KICK_STRAIGHT = 7;
+static const int GPIO_KICK_CHIP = 24;
+static const int GPIO_KICK_POWER_SUPPLY = 24;
+static const int GPIO_KICK_ENABLE_CHARGE = 24;
+static const int GPIO_KICK_CHARGE_COMPLETE = 24;
 
 Driver::Driver(const rclcpp::NodeOptions & options)
 : rclcpp_lifecycle::LifecycleNode("hardware_driver", options),
@@ -111,6 +117,10 @@ void Driver::on_kick(
 {
   std::cout << "キックの種類:" << std::to_string(request->kick_type);
   std::cout << ", キックパワー:" << std::to_string(request->kick_power) << std::endl;
+
+  gpio_write(pi_, GPIO_KICK_STRAIGHT, PI_HIGH);
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  gpio_write(pi_, GPIO_KICK_STRAIGHT, PI_LOW);
 
   response->success = true;
   response->message = "キック成功したで";
@@ -238,6 +248,12 @@ CallbackReturn Driver::on_configure(const rclcpp_lifecycle::State &)
   set_PWM_frequency(pi_, 13, 40000);  // frequency LSB:Hz
   set_PWM_range(pi_, 13, 25);         // range LSB:us
   set_PWM_dutycycle(pi_, 13, 25);     // dutycycle LSB:us
+
+  // kicker setup
+  set_mode(pi_, GPIO_KICK_STRAIGHT, PI_OUTPUT);
+  gpio_write(pi_, GPIO_KICK_STRAIGHT, PI_LOW);
+  set_mode(pi_, GPIO_KICK_CHIP, PI_OUTPUT);
+  gpio_write(pi_, GPIO_KICK_CHIP, PI_LOW);
 
   return CallbackReturn::SUCCESS;
 }
