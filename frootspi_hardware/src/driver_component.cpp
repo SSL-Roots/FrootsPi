@@ -40,6 +40,9 @@ static const int GPIO_DRIBBLE_PWM = 13;
 static const int DRIBBLE_PWM_FREQUENCY = 40000;  // kHz
 static const int DRIBBLE_PWM_DUTY_CYCLE = 1e6 / DRIBBLE_PWM_FREQUENCY;  // usec
 
+static const int GPIO_CENTER_LED = 14;
+static const int GPIO_RIGHT_LED = 4;
+
 Driver::Driver(const rclcpp::NodeOptions & options)
 : rclcpp_lifecycle::LifecycleNode("hardware_driver", options),
   pi_(-1)
@@ -175,20 +178,26 @@ void Driver::on_set_center_led(
   const std_srvs::srv::SetBool::Request::SharedPtr request,
   std_srvs::srv::SetBool::Response::SharedPtr response)
 {
-  std::cout << "center_ledを操作するで:" << request->data << std::endl;
-
-  response->success = true;
-  response->message = "LEDをセットしたで";
+  if (gpio_write(pi_, GPIO_CENTER_LED, request->data) == 0) {
+    response->success = true;
+    response->message = "LED操作成功";
+  } else {
+    response->success = false;
+    response->message = "LED操作失敗";
+  }
 }
 
 void Driver::on_set_right_led(
   const std_srvs::srv::SetBool::Request::SharedPtr request,
   std_srvs::srv::SetBool::Response::SharedPtr response)
 {
-  std::cout << "right_ledを操作するで:" << request->data << std::endl;
-
-  response->success = true;
-  response->message = "LEDをセットしたで";
+  if (gpio_write(pi_, GPIO_RIGHT_LED, request->data) == 0) {
+    response->success = true;
+    response->message = "LED操作成功";
+  } else {
+    response->success = false;
+    response->message = "LED操作失敗";
+  }
 }
 
 CallbackReturn Driver::on_configure(const rclcpp_lifecycle::State &)
@@ -256,6 +265,12 @@ CallbackReturn Driver::on_configure(const rclcpp_lifecycle::State &)
   set_PWM_frequency(pi_, GPIO_DRIBBLE_PWM, DRIBBLE_PWM_FREQUENCY);
   set_PWM_range(pi_, GPIO_DRIBBLE_PWM, DRIBBLE_PWM_DUTY_CYCLE);
   gpio_write(pi_, GPIO_DRIBBLE_PWM, PI_HIGH);  // 負論理のためHighでモータオフ
+
+  // led setup
+  set_mode(pi_, GPIO_CENTER_LED, PI_OUTPUT);
+  gpio_write(pi_, GPIO_CENTER_LED, PI_LOW);
+  set_mode(pi_, GPIO_RIGHT_LED, PI_OUTPUT);
+  gpio_write(pi_, GPIO_RIGHT_LED, PI_LOW);
 
   return CallbackReturn::SUCCESS;
 }
