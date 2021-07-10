@@ -44,6 +44,9 @@ public:
   FROOTSPI_HARDWARE_PUBLIC
   explicit Driver(const rclcpp::NodeOptions & options);
 
+  FROOTSPI_HARDWARE_PUBLIC
+  ~Driver();
+
 private:
   void on_polling_timer();
   void callback_dribble_power(const frootspi_msgs::msg::DribblePower::SharedPtr msg);

@@ -36,11 +36,20 @@ namespace frootspi_hardware
 {
 
 static const int GPIO_SHUTDOWN_SWITCH = 23;
+static const int GPIO_DRIBBLE_PWM = 13;
+static const int DRIBBLE_PWM_FREQUENCY = 40000;  // kHz
+static const int DRIBBLE_PWM_DUTY_CYCLE = 1e6 / DRIBBLE_PWM_FREQUENCY;  // usec
 
 Driver::Driver(const rclcpp::NodeOptions & options)
 : rclcpp_lifecycle::LifecycleNode("hardware_driver", options),
   pi_(-1)
 {
+}
+
+Driver::~Driver()
+{
+  gpio_write(pi_, GPIO_DRIBBLE_PWM, PI_HIGH);  // 負論理のためHighでモータオフ
+  pigpio_stop(pi_);
 }
 
 void Driver::on_polling_timer()
@@ -93,9 +102,18 @@ void Driver::on_polling_timer()
 
 void Driver::callback_dribble_power(const frootspi_msgs::msg::DribblePower::SharedPtr msg)
 {
-  unsigned int dribble_duty_cycle;
-  dribble_duty_cycle = 25 - (unsigned int)( 25. * msg->power);  // 負論理のため反転
-  set_PWM_dutycycle(pi_, 13, dribble_duty_cycle);
+  double power = msg->power;
+  if (power > 1.0) {
+    power = 1.0;
+  } else if (power < 0.0) {
+    power = 0.0;
+  }
+
+  // 負論理のため反転
+  // 少数を切り上げるため0.1を足す (例：20.0 -> 19となるので、20.1 -> 20とさせる)
+  int dribble_duty_cycle = DRIBBLE_PWM_DUTY_CYCLE * (1.0 - power) + 0.1;
+
+  set_PWM_dutycycle(pi_, GPIO_DRIBBLE_PWM, dribble_duty_cycle);
 }
 
 void Driver::callback_wheel_velocities(const frootspi_msgs::msg::WheelVelocities::SharedPtr msg)
@@ -234,10 +252,10 @@ CallbackReturn Driver::on_configure(const rclcpp_lifecycle::State &)
   set_mode(pi_, GPIO_SHUTDOWN_SWITCH, PI_INPUT);
 
   // dribbler setup
-  set_mode(pi_, 13, PI_OUTPUT);
-  set_PWM_frequency(pi_, 13, 40000);  // frequency LSB:Hz
-  set_PWM_range(pi_, 13, 25);         // range LSB:us
-  set_PWM_dutycycle(pi_, 13, 25);     // dutycycle LSB:us
+  set_mode(pi_, GPIO_DRIBBLE_PWM, PI_OUTPUT);
+  set_PWM_frequency(pi_, GPIO_DRIBBLE_PWM, DRIBBLE_PWM_FREQUENCY);
+  set_PWM_range(pi_, GPIO_DRIBBLE_PWM, DRIBBLE_PWM_DUTY_CYCLE);
+  gpio_write(pi_, GPIO_DRIBBLE_PWM, PI_HIGH);  // 負論理のためHighでモータオフ
 
   return CallbackReturn::SUCCESS;
 }
@@ -272,8 +290,7 @@ CallbackReturn Driver::on_deactivate(const rclcpp_lifecycle::State &)
   pub_imu_->on_deactivate();
   polling_timer_->cancel();
 
-  // dribbler PWM OFF
-  set_PWM_dutycycle(pi_, 13, 25);      // dutycycle LSB:us
+  gpio_write(pi_, GPIO_DRIBBLE_PWM, PI_HIGH);  // 負論理のためHighでモータオフ
 
   return CallbackReturn::SUCCESS;
 }
