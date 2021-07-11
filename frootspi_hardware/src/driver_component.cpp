@@ -39,9 +39,9 @@ namespace frootspi_hardware
 static const int GPIO_SHUTDOWN_SWITCH = 23;
 static const int GPIO_KICK_STRAIGHT = 7;
 static const int GPIO_KICK_CHIP = 24;
-static const int GPIO_KICK_POWER_SUPPLY = 24;
-static const int GPIO_KICK_ENABLE_CHARGE = 24;
-static const int GPIO_KICK_CHARGE_COMPLETE = 24;
+static const int GPIO_KICK_SUPPLY_POWER = 5;
+static const int GPIO_KICK_ENABLE_CHARGE = 26;
+static const int GPIO_KICK_CHARGE_COMPLETE = 12;
 
 Driver::Driver(const rclcpp::NodeOptions & options)
 : rclcpp_lifecycle::LifecycleNode("hardware_driver", options),
@@ -73,8 +73,13 @@ void Driver::on_polling_timer()
   // キッカー（昇圧回路）電圧をパブリッシュ
   auto kicker_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
   kicker_voltage_msg->voltage = 200.0;  // キッカー電圧 [v]をセット
-  kicker_voltage_msg->voltage_status =
-    frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_CHARGED;
+  if (gpio_read(pi_, GPIO_KICK_CHARGE_COMPLETE)){
+    kicker_voltage_msg->voltage_status =
+      frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_FULL;
+  }else{
+    kicker_voltage_msg->voltage_status =
+      frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_CHARGED;
+  }
   pub_kicker_voltage_->publish(std::move(kicker_voltage_msg));
 
   // スイッチ状態をパブリッシュ
@@ -119,7 +124,7 @@ void Driver::on_kick(
   std::cout << ", キックパワー:" << std::to_string(request->kick_power) << std::endl;
 
   gpio_write(pi_, GPIO_KICK_STRAIGHT, PI_HIGH);
-  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  std::this_thread::sleep_for(std::chrono::milliseconds(2));
   gpio_write(pi_, GPIO_KICK_STRAIGHT, PI_LOW);
 
   response->success = true;
@@ -132,8 +137,10 @@ void Driver::on_set_kicker_charging(
 {
   if (request->start_charging) {
     std::cout << "キッカーの充電を開始" << std::endl;
+    gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_HIGH);
   } else {
     std::cout << "キッカーの充電を停止" << std::endl;
+    gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_LOW);
   }
 
   response->success = true;
@@ -254,6 +261,11 @@ CallbackReturn Driver::on_configure(const rclcpp_lifecycle::State &)
   gpio_write(pi_, GPIO_KICK_STRAIGHT, PI_LOW);
   set_mode(pi_, GPIO_KICK_CHIP, PI_OUTPUT);
   gpio_write(pi_, GPIO_KICK_CHIP, PI_LOW);
+  set_mode(pi_, GPIO_KICK_SUPPLY_POWER, PI_OUTPUT);
+  gpio_write(pi_, GPIO_KICK_SUPPLY_POWER, PI_LOW);
+  set_mode(pi_, GPIO_KICK_ENABLE_CHARGE, PI_OUTPUT);
+  gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_LOW);
+  set_mode(pi_, GPIO_KICK_CHARGE_COMPLETE, PI_INPUT);
 
   return CallbackReturn::SUCCESS;
 }
@@ -271,6 +283,8 @@ CallbackReturn Driver::on_activate(const rclcpp_lifecycle::State &)
   pub_imu_->on_activate();
 
   polling_timer_->reset();
+
+  gpio_write(pi_, GPIO_KICK_SUPPLY_POWER, PI_HIGH);
 
   return CallbackReturn::SUCCESS;
 }
@@ -290,6 +304,9 @@ CallbackReturn Driver::on_deactivate(const rclcpp_lifecycle::State &)
 
   // dribbler PWM OFF
   set_PWM_dutycycle(pi_, 13, 25);      // dutycycle LSB:us
+
+  gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_LOW);
+  gpio_write(pi_, GPIO_KICK_SUPPLY_POWER, PI_LOW);
 
   return CallbackReturn::SUCCESS;
 }
