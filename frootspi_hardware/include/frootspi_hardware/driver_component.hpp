@@ -48,6 +48,8 @@ public:
   ~Driver();
 
 private:
+  void discharge_kicker();
+
   void on_polling_timer();
   void callback_dribble_power(const frootspi_msgs::msg::DribblePower::SharedPtr msg);
   void callback_wheel_velocities(const frootspi_msgs::msg::WheelVelocities::SharedPtr msg);
@@ -111,6 +113,7 @@ private:
   int pi_;
   int gpio_ball_sensor_;
   IOExpander io_expander_;
+  bool enable_kicker_charging_;
 };
 
 }  // namespace frootspi_hardware

@@ -48,14 +48,41 @@ static const int DRIBBLE_PWM_DUTY_CYCLE = 1e6 / DRIBBLE_PWM_FREQUENCY;  // usec
 
 Driver::Driver(const rclcpp::NodeOptions & options)
 : rclcpp_lifecycle::LifecycleNode("hardware_driver", options),
-  pi_(-1)
+  pi_(-1), enable_kicker_charging_(false)
 {
 }
 
 Driver::~Driver()
 {
   gpio_write(pi_, GPIO_DRIBBLE_PWM, PI_HIGH);  // 負論理のためHighでモータオフ
+
+  discharge_kicker();
+  gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_LOW);
+  gpio_write(pi_, GPIO_KICK_SUPPLY_POWER, PI_LOW);
   pigpio_stop(pi_);
+}
+
+void Driver::discharge_kicker()
+{
+  // キッカーのコンデンサを放電する関数
+  const int TIME_FOR_DISCHARGE_KICK = 1;
+  const int TIME_FOR_DISCHARGE_INTERVAL = 500;
+  const int NUM_OF_DISCHARGE_KICK = 30;
+
+  RCLCPP_INFO(this->get_logger(), "キッカーの電荷を放電します");
+
+  // 充電許可フラグをオフにする
+  gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_LOW);
+  enable_kicker_charging_ = false;
+
+  // 連続でキックを実行して放電する
+  // TODO (shota): コンデンサ電圧を監視して、放電時間を短縮する
+  for (int i = 0; i < NUM_OF_DISCHARGE_KICK; i++) {
+    gpio_write(pi_, GPIO_KICK_STRAIGHT, PI_HIGH);
+    std::this_thread::sleep_for(std::chrono::milliseconds(TIME_FOR_DISCHARGE_KICK));
+    gpio_write(pi_, GPIO_KICK_STRAIGHT, PI_LOW);
+    std::this_thread::sleep_for(std::chrono::milliseconds(TIME_FOR_DISCHARGE_INTERVAL));
+  }
 }
 
 void Driver::on_polling_timer()
@@ -82,12 +109,12 @@ void Driver::on_polling_timer()
   // キッカー（昇圧回路）電圧をパブリッシュ
   auto kicker_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
   kicker_voltage_msg->voltage = 200.0;  // キッカー電圧 [v]をセット
-  if (gpio_read(pi_, GPIO_KICK_CHARGE_COMPLETE)){
-    kicker_voltage_msg->voltage_status =
-      frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_FULL;
-  }else{
+  if (gpio_read(pi_, GPIO_KICK_CHARGE_COMPLETE)) { // 負論理のため
     kicker_voltage_msg->voltage_status =
       frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_CHARGED;
+  } else {
+    kicker_voltage_msg->voltage_status =
+      frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_FULL;
   }
   pub_kicker_voltage_->publish(std::move(kicker_voltage_msg));
 
@@ -138,31 +165,70 @@ void Driver::on_kick(
   const frootspi_msgs::srv::Kick::Request::SharedPtr request,
   frootspi_msgs::srv::Kick::Response::SharedPtr response)
 {
-  std::cout << "キックの種類:" << std::to_string(request->kick_type);
-  std::cout << ", キックパワー:" << std::to_string(request->kick_power) << std::endl;
+  const int MAX_SLEEP_TIME_MSEC_FOR_STRAIGHT = 25;
 
-  gpio_write(pi_, GPIO_KICK_STRAIGHT, PI_HIGH);
-  std::this_thread::sleep_for(std::chrono::milliseconds(2));
-  gpio_write(pi_, GPIO_KICK_STRAIGHT, PI_LOW);
+  if (request->kick_type == frootspi_msgs::srv::Kick::Request::KICK_TYPE_STRAIGHT) {
+    // ストレートキック
 
-  response->success = true;
-  response->message = "キック成功したで";
+    double kick_power = request->kick_power;
+    if (kick_power > 1.0) {
+      kick_power = 1.0;
+    } else if (kick_power < 0) {
+      kick_power = 0;
+    }
+    int sleep_time_msec = MAX_SLEEP_TIME_MSEC_FOR_STRAIGHT * kick_power;
+
+    // キックをする際は充電を停止する
+    gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_LOW);
+    // GPIOをHIGHにしている時間を変化させて、キックパワーを変更する
+    gpio_write(pi_, GPIO_KICK_STRAIGHT, PI_HIGH);
+    std::this_thread::sleep_for(std::chrono::milliseconds(sleep_time_msec));
+    gpio_write(pi_, GPIO_KICK_STRAIGHT, PI_LOW);
+
+    if (enable_kicker_charging_) {
+      // 充電許可が出ていれば、充電を再開する
+      gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_HIGH);
+    }
+
+    response->success = true;
+    response->message = std::to_string(sleep_time_msec) + " ミリ秒間ソレノイドをONして、ストレートキックしました";
+
+  } else if (request->kick_type == frootspi_msgs::srv::Kick::Request::KICK_TYPE_CHIP) {
+    // チップキックは未実装
+    response->success = false;
+    response->message = "チップキックデバイスが搭載されていません";
+
+  } else if (request->kick_type == frootspi_msgs::srv::Kick::Request::KICK_TYPE_DISCHARGE) {
+    // 放電
+    discharge_kicker();
+
+    response->success = true;
+    response->message = "放電完了しました";
+  } else {
+    // 未定義のキックタイプ
+    response->success = false;
+    response->message = "未定義のキックタイプです";
+  }
 }
 
 void Driver::on_set_kicker_charging(
   const frootspi_msgs::srv::SetKickerCharging::Request::SharedPtr request,
   frootspi_msgs::srv::SetKickerCharging::Response::SharedPtr response)
 {
+  // キッカーの充電はキック処理時にON/OFFされるので、
+  // enable_kicker_charging_ 変数で充電フラグを管理する
   if (request->start_charging) {
     std::cout << "キッカーの充電を開始" << std::endl;
     gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_HIGH);
+    enable_kicker_charging_ = true;
   } else {
     std::cout << "キッカーの充電を停止" << std::endl;
     gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_LOW);
+    enable_kicker_charging_ = false;
   }
 
   response->success = true;
-  response->message = "充電処理に成功したで";
+  response->message = "充電処理をセットしました";
 }
 
 void Driver::on_set_lcd_text(
@@ -284,6 +350,7 @@ CallbackReturn Driver::on_configure(const rclcpp_lifecycle::State &)
   set_mode(pi_, GPIO_KICK_ENABLE_CHARGE, PI_OUTPUT);
   gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_LOW);
   set_mode(pi_, GPIO_KICK_CHARGE_COMPLETE, PI_INPUT);
+  set_pull_up_down(pi_, GPIO_KICK_CHARGE_COMPLETE, PI_PUD_UP);  // 外部プルアップあり
 
   return CallbackReturn::SUCCESS;
 }
