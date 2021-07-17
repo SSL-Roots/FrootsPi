@@ -205,7 +205,7 @@ void Driver::on_kick(
     discharge_kicker_timer_->reset();  // 放電タイマーを再開して放電キック開始
 
     response->success = true;
-    response->message = "放電完了しました";
+    response->message = "放電を開始しました";
   } else {
     // 未定義のキックタイプ
     response->success = false;
