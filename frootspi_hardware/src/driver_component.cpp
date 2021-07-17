@@ -86,7 +86,7 @@ void Driver::on_polling_timer()
   // キッカー（昇圧回路）電圧をパブリッシュ
   auto kicker_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
   kicker_voltage_msg->voltage = 200.0;  // キッカー電圧 [v]をセット
-  if (gpio_read(pi_, GPIO_KICK_CHARGE_COMPLETE)) { // 負論理のため
+  if (gpio_read(pi_, GPIO_KICK_CHARGE_COMPLETE)) {  // 負論理のため
     kicker_voltage_msg->voltage_status =
       frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_CHARGED;
   } else {
@@ -133,7 +133,7 @@ void Driver::on_discharge_kicker_timer()
 
   // 一定回数キックしたらタイマーをオフする
   discharge_kick_count_++;
-  if (discharge_kick_count_ >NUM_OF_DISCHARGE_KICK){
+  if (discharge_kick_count_ > NUM_OF_DISCHARGE_KICK) {
     discharge_kicker_timer_->cancel();
     discharge_kick_count_ = 0;
   }
@@ -192,7 +192,7 @@ void Driver::on_kick(
     }
 
     response->success = true;
-    response->message = std::to_string(sleep_time_msec) + " ミリ秒間ソレノイドをONして、ストレートキックしました";
+    response->message = std::to_string(sleep_time_msec) + " ミリ秒間ソレノイドをONしました";
 
   } else if (request->kick_type == frootspi_msgs::srv::Kick::Request::KICK_TYPE_CHIP) {
     // チップキックは未実装
@@ -217,7 +217,7 @@ void Driver::on_set_kicker_charging(
   const frootspi_msgs::srv::SetKickerCharging::Request::SharedPtr request,
   frootspi_msgs::srv::SetKickerCharging::Response::SharedPtr response)
 {
-  if(this->get_current_state().id() == lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE){
+  if (this->get_current_state().id() == lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE) {
     // キッカーの充電はキック処理時にON/OFFされるので、
     // enable_kicker_charging_ 変数で充電フラグを管理する
     if (request->start_charging) {
@@ -232,7 +232,7 @@ void Driver::on_set_kicker_charging(
 
     response->success = true;
     response->message = "充電処理をセットしました";
-  }else{
+  } else {
     gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_LOW);
     enable_kicker_charging_ = false;
 
@@ -294,7 +294,8 @@ CallbackReturn Driver::on_configure(const rclcpp_lifecycle::State &)
   polling_timer_ = create_wall_timer(1ms, std::bind(&Driver::on_polling_timer, this));
   polling_timer_->cancel();  // ノードがActiveになるまでタイマーオフ
   // コンデンサ放電時に使うタイマー
-  discharge_kicker_timer_ = create_wall_timer(500ms, std::bind(&Driver::on_discharge_kicker_timer, this));
+  discharge_kicker_timer_ =
+    create_wall_timer(500ms, std::bind(&Driver::on_discharge_kicker_timer, this));
   discharge_kicker_timer_->cancel();  // 放電処理が始まるまでタイマーオフ
 
   pub_ball_detection_ = create_publisher<frootspi_msgs::msg::BallDetection>("ball_detection", 1);
