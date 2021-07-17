@@ -221,17 +221,18 @@ void Driver::on_set_kicker_charging(
     // キッカーの充電はキック処理時にON/OFFされるので、
     // enable_kicker_charging_ 変数で充電フラグを管理する
     if (request->start_charging) {
-      std::cout << "キッカーの充電を開始" << std::endl;
       gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_HIGH);
       enable_kicker_charging_ = true;
+      RCLCPP_INFO(this->get_logger(), "キッカーの充電開始.");
+      response->message = "充電を開始しました";
     } else {
-      std::cout << "キッカーの充電を停止" << std::endl;
       gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_LOW);
       enable_kicker_charging_ = false;
+      RCLCPP_INFO(this->get_logger(), "キッカーの充電停止.");
+      response->message = "充電を停止しました";
     }
 
     response->success = true;
-    response->message = "充電処理をセットしました";
   } else {
     gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_LOW);
     enable_kicker_charging_ = false;
