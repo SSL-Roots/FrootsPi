@@ -23,6 +23,7 @@ find_package(rclcpp_components REQUIRED)
 find_package(rclcpp_lifecycle REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
+find_package(lifecycle_msgs REQUIRED)
 
 include_directories(include)
 
@@ -39,6 +40,7 @@ ament_target_dependencies(driver_component
   rclcpp_lifecycle
   sensor_msgs
   std_srvs
+  lifecycle_msgs
 )
 target_link_libraries(driver_component pigpiod_if2)
 rclcpp_components_register_nodes(driver_component "frootspi_hardware::Driver")
@@ -56,6 +58,7 @@ ament_export_dependencies(rclcpp_components)
 ament_export_dependencies(rclcpp_lifecycle)
 ament_export_dependencies(sensor_msgs)
 ament_export_dependencies(std_srvs)
+ament_export_dependencies(lifecycle_msgs)
 
 ament_export_include_directories(include)
 ament_export_libraries(driver_component)
