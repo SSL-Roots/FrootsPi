@@ -69,12 +69,14 @@ class JoyCon(Node):
         kick_power = Float32()
         kick_flag = Int16()
 
-        target_velocity.linear.x = \
-            msg.axes[self._AXIS_VEL_SURGE] * self._MAX_VEL_SURGE  # m/sec
-        target_velocity.linear.y = \
-            msg.axes[self._AXIS_VEL_SWAY] * self._MAX_VEL_SWAY  # m/sec
-        target_velocity.angular.z = \
-            msg.axes[self._AXIS_VEL_ANGULAR] * self._MAX_VEL_ANGULAR  # rad/sec
+        # 速度指令
+        if msg.buttons[self._BUTTON_UNLOCK_MOVE]:
+            target_velocity.linear.x = \
+                msg.axes[self._AXIS_VEL_SURGE] * self._MAX_VEL_SURGE  # m/sec
+            target_velocity.linear.y = \
+                msg.axes[self._AXIS_VEL_SWAY] * self._MAX_VEL_SWAY  # m/sec
+            target_velocity.angular.z = \
+                msg.axes[self._AXIS_VEL_ANGULAR] * self._MAX_VEL_ANGULAR  # rad/sec
         self._pub_target_vel.publish(target_velocity)
 
         if msg.buttons[self._BUTTON_UNLOCK_KICK] and msg.buttons[self._BUTTON_DRIBBLE]:
