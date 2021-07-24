@@ -203,7 +203,8 @@ void Driver::on_kick(
     // 放電
     // discharge_kicker();
     discharge_kicker_timer_->reset();  // 放電タイマーを再開して放電キック開始
-
+    RCLCPP_INFO(this->get_logger(), "キッカーの充電停止."); // 充電停止しているので通知
+    
     response->success = true;
     response->message = "放電を開始しました";
   } else {
