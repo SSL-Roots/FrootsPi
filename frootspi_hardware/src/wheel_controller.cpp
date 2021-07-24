@@ -84,7 +84,7 @@ bool WheelController::device_close()
 bool WheelController::set_wheel_velocities(
   const double vel_front_right, const double vel_front_left, const double vel_back_center)
 {
-  constexpr double GEAR_RAITO = 2.2/1.091;  // この数値はモタドラと帳尻を合わせること
+  constexpr double GEAR_RAITO = 2.2 / 1.091;  // この数値はモタドラと帳尻を合わせること
   constexpr double LSB = 10;  // 送信データの1bitが、モータ速度の10倍を表す
   constexpr double WHEEL_TO_MOTOR = GEAR_RAITO * LSB;
 
