@@ -52,6 +52,8 @@ Driver::Driver(const rclcpp::NodeOptions & options)
 Driver::~Driver()
 {
   gpio_write(pi_, GPIO_DRIBBLE_PWM, PI_HIGH);  // 負論理のためHighでモータオフ
+  lcd_driver_.write_text("ROS 2\nSHUTDOWN");
+
   pigpio_stop(pi_);
 }
 
@@ -155,10 +157,13 @@ void Driver::on_set_lcd_text(
   const frootspi_msgs::srv::SetLCDText::Request::SharedPtr request,
   frootspi_msgs::srv::SetLCDText::Response::SharedPtr response)
 {
-  std::cout << "LCDに文字列" << request->text << std::endl;
-
-  response->success = true;
-  response->message = "LCDに文字列をセットしたで";
+  if (lcd_driver_.write_text(request->text)) {
+    response->success = true;
+    response->message = "LCDに文字列 " + request->text + " をセットしました";
+  } else {
+    response->success = false;
+    response->message = "LCDに文字列をセットできませんでした。";
+  }
 }
 
 void Driver::on_set_left_led(
@@ -257,6 +262,12 @@ CallbackReturn Driver::on_configure(const rclcpp_lifecycle::State &)
     RCLCPP_ERROR(this->get_logger(), "Failed to connect IO expander.");
     return CallbackReturn::FAILURE;
   }
+
+  if (!lcd_driver_.open(pi_)) {
+    RCLCPP_ERROR(this->get_logger(), "Failed to connect LCD Driver.");
+    return CallbackReturn::FAILURE;
+  }
+  lcd_driver_.write_text("FrootsPi\nﾌﾙｰﾂﾊﾟｲ!");
 
   set_mode(pi_, GPIO_SHUTDOWN_SWITCH, PI_INPUT);
 
