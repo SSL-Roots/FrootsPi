@@ -22,6 +22,7 @@
 #include "frootspi_hardware/visibility_control.h"
 #include "frootspi_hardware/io_expander.hpp"
 #include "frootspi_hardware/lcd_driver.hpp"
+#include "frootspi_hardware/wheel_controller.hpp"
 #include "frootspi_msgs/msg/ball_detection.hpp"
 #include "frootspi_msgs/msg/battery_voltage.hpp"
 #include "frootspi_msgs/msg/dribble_power.hpp"
@@ -113,6 +114,7 @@ private:
   int gpio_ball_sensor_;
   IOExpander io_expander_;
   LCDDriver lcd_driver_;
+  WheelController wheel_controller_;
 };
 
 }  // namespace frootspi_hardware
