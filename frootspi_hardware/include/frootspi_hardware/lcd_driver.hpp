@@ -25,7 +25,7 @@ public:
 
   bool open(const int pi);
   bool close();
-  bool write_text(const std::string text);
+  bool write_texts(const std::string text1, const std::string text2);
 
 private:
   bool init_device();
@@ -50,6 +50,7 @@ private:
     const bool cursor_blink_on);
   bool clear_display();
   bool set_address(const unsigned address);
+  void write_line(const std::string text);
 
   int i2c_handler_;
   int pi_;

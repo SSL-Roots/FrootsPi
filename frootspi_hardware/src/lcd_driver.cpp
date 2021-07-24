@@ -65,65 +65,23 @@ bool LCDDriver::close()
   }
 }
 
-bool LCDDriver::write_text(const std::string text)
+bool LCDDriver::write_texts(const std::string text1, const std::string text2)
 {
   // LCDの全行に文字列を書き込む関数
   // 文字列を書き込む前に、LCDの表示をクリアする
-  // textの中に改行コードが含まれていたら、書き込む行を変える
   // アスキーコードと半角カタカナに対応。それ以外の文字は空白になる
   // 2バイトや4バイト文字を入力されると、正しくLCDに表示できないので注意
   // 文字コードの参考: http://ash.jp/code/unitbl1.htm
 
   const unsigned START_ADDRESS_FIRST_LINE = 0x00;
   const unsigned START_ADDRESS_SECOND_LINE = 0x40;
-  const int NUM_OF_CHARACTERS = 8;  // LCD 1行の文字数
-  const int NUM_OF_LINES = 2;  // LCDの表示行数
 
   clear_display();
   set_address(START_ADDRESS_FIRST_LINE);
+  write_line(text1);
+  set_address(START_ADDRESS_SECOND_LINE);
+  write_line(text2);
 
-  int count_characters = 0;
-  int count_lines = 0;
-  const int TEXT_SIZE = text.size();
-  for (int i = 0; i < TEXT_SIZE; i++) {
-    char character = text[i];
-
-    // 改行処理
-    if (character == 0x0a) {
-      set_address(START_ADDRESS_SECOND_LINE);
-      count_characters = 0;
-      count_lines++;
-      continue;
-    }
-
-    // 文字数、行数をオーバフローしないための処理
-    if (count_lines >= NUM_OF_LINES) {
-      // 最大行数を超えた場合は書き込み終了
-      break;
-    }
-    if (count_characters >= NUM_OF_CHARACTERS) {
-      // 最大文字数を超えた場合はスキップ（改行されるのを待機）
-      continue;
-    }
-
-    // 文字の変換
-    if (character >= 0x20 && character <= 0x7d) {
-      // ASCIIの半角英数・記号
-      write_data(character);
-      count_characters++;
-    } else if (character == 0xef && TEXT_SIZE - i >= 3) {
-      // 半角カタカナ(3バイト文字)
-      char hankaku_katakana = 0x3f;  // ?
-      if (text[i + 1] == 0xbd) {
-        hankaku_katakana = text[i + 2];
-      } else if (text[i + 1] == 0xbe) {
-        hankaku_katakana = text[i + 2] + 0x40;
-      }
-      i += 2;  // 3バイト文字なので、インクリメントしてずらす
-      write_data(hankaku_katakana);
-      count_characters++;
-    }
-  }
   return true;
 }
 
@@ -352,5 +310,41 @@ bool LCDDriver::set_address(const unsigned address)
   } else {
     RCLCPP_ERROR(LOGGER, "Invalid LCD RAM address :%x", address);
     return false;
+  }
+}
+
+void LCDDriver::write_line(const std::string text)
+{
+  // LCDに文字列を1行書き込む
+  // この関数を実行する前に、書き込みアドレスを左端にセットすること
+
+  const int NUM_OF_CHARACTERS = 8;  // LCD 1行の文字数
+  const int TEXT_SIZE = text.size();
+
+  int count_characters = 0;
+  for (int i = 0; i < TEXT_SIZE; i++) {
+    char character = text[i];
+
+    if (character >= 0x20 && character <= 0x7d) {
+      // ASCIIの半角英数・記号
+      write_data(character);
+      count_characters++;
+    } else if (character == 0xef && TEXT_SIZE - i >= 3) {
+      // 半角カタカナ(3バイト文字)
+      char hankaku_katakana = 0x3f;  // ?
+      if (text[i + 1] == 0xbd) {
+        hankaku_katakana = text[i + 2];
+      } else if (text[i + 1] == 0xbe) {
+        hankaku_katakana = text[i + 2] + 0x40;
+      }
+      i += 2;  // 3バイト文字なので、インクリメントしてずらす
+      write_data(hankaku_katakana);
+      count_characters++;
+    }
+
+    if (count_characters >= NUM_OF_CHARACTERS) {
+      // 最大文字数を超えた場合は終了
+      break;
+    }
   }
 }
