@@ -11,6 +11,8 @@
 
   <depend>frootspi_msgs</depend>
   <depend>rclcpp</depend>
+  <depend>frootspi_msgs</depend>
+  <depend>geometry_msgs</depend>
   <depend>rclcpp_components</depend>
   <depend>rclcpp_lifecycle</depend>
 
