@@ -116,7 +116,18 @@ void WheelVector::robotVelToWheelRotateVels(
 {
   /*
   * ロボット速度から各車輪の回転速度に変換する
+  * 
+  * 座標系は REP-0103 に準拠し、前方がx正方向, 左がy正方向
+  * ref: https://www.ros.org/reps/rep-0103.html#axis-orientation
+  *
+  * 各車輪のインデックスは、ロボットを上から見たとき
+  * 右前車輪から反時計周りに 0, 1, 2
   */
+  const double CONST_V0_COEFFICIENT_VX_ = 0.8660254, CONST_V0_COEFFICIENT_VY_ = 0.5;
+  const double CONST_V1_COEFFICIENT_VX_ = -0.8660254, CONST_V1_COEFFICIENT_VY_ = 0.5;
+  const double CONST_V2_COEFFICIENT_VX_ = 0, CONST_V2_COEFFICIENT_VY_ = -1;
+  const double CONST_MACHINE_RADIUS_ = 0.07;
+  const double CONST_WHEEL_RADIUS_ = 0.028;
 
   double v0_mps = (CONST_V0_COEFFICIENT_VX_ * vx) + (CONST_V0_COEFFICIENT_VY_ * vy) +
     (CONST_MACHINE_RADIUS_ * vw );
