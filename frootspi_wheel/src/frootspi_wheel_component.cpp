@@ -25,7 +25,6 @@
 #include "frootspi_msgs/msg/wheel_velocities.hpp"
 #include "frootspi_wheel/frootspi_wheel_component.hpp"
 #include "geometry_msgs/msg/twist.hpp"
-#include "lifecycle_msgs/srv/change_state.hpp"
 #include "rclcpp/rclcpp.hpp"
 
 using namespace std::chrono_literals;
