@@ -116,7 +116,7 @@ void WheelVector::robotVelToWheelRotateVels(
 {
   /*
   * ロボット速度から各車輪の回転速度に変換する
-  * 
+  *
   * 座標系は REP-0103 に準拠し、前方がx正方向, 左がy正方向
   * ref: https://www.ros.org/reps/rep-0103.html#axis-orientation
   *
