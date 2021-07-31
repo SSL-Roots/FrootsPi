@@ -27,7 +27,6 @@
 #include "geometry_msgs/msg/twist.hpp"
 #include "lifecycle_msgs/srv/change_state.hpp"
 #include "rclcpp/rclcpp.hpp"
-#include "std_msgs/msg/int16.hpp"
 
 using namespace std::chrono_literals;
 using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
