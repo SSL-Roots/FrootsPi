@@ -28,6 +28,7 @@
 #include "std_msgs/msg/float32.hpp"
 #include "std_msgs/msg/int16.hpp"
 #include "frootspi_msgs/msg/dribble_power.hpp"
+#include "geometry_msgs/msg/twist.hpp"
 
 namespace frootspi_conductor
 {
@@ -56,6 +57,9 @@ private:
   pub_command_;
   std::shared_ptr<rclcpp::Subscription<frootspi_msgs::msg::FrootsPiCommands>>
   sub_frootspi_commands_;
+
+  std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<geometry_msgs::msg::Twist>>
+  pub_target_velocity_;
 
   std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<frootspi_msgs::msg::DribblePower>>
   pub_dribble_power_;
