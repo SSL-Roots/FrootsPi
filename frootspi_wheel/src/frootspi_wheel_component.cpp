@@ -47,7 +47,7 @@ CallbackReturn WheelNode::on_configure(const rclcpp_lifecycle::State &)
 
   // init publishers
   pub_wheel_velocities_ = create_publisher<frootspi_msgs::msg::WheelVelocities>(
-    "wheel_velocities", 1);
+    "target_wheel_velocities", 1);
 
   // init subscribers
   sub_target_velocity_ = create_subscription<geometry_msgs::msg::Twist>(
@@ -103,8 +103,8 @@ void WheelNode::callback_target_velocity(const geometry_msgs::msg::Twist::Shared
 
   // publish
   auto wheel_velocities_msg = std::make_unique<frootspi_msgs::msg::WheelVelocities>();
-  wheel_velocities_msg->front_left = v0;
-  wheel_velocities_msg->front_right = v1;
+  wheel_velocities_msg->front_right = v0;
+  wheel_velocities_msg->front_left = v1;
   wheel_velocities_msg->back_center = v2;
   pub_wheel_velocities_->publish(std::move(wheel_velocities_msg));
 }
