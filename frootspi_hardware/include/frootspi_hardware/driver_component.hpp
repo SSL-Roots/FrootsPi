@@ -50,6 +50,7 @@ public:
 
 private:
   void on_polling_timer();
+  void on_discharge_kicker_timer();
   void callback_dribble_power(const frootspi_msgs::msg::DribblePower::SharedPtr msg);
   void callback_wheel_velocities(const frootspi_msgs::msg::WheelVelocities::SharedPtr msg);
   void on_kick(
@@ -108,10 +109,13 @@ private:
   std::shared_ptr<rclcpp::Service<std_srvs::srv::SetBool>> srv_set_right_led_;
 
   rclcpp::TimerBase::SharedPtr polling_timer_;
+  rclcpp::TimerBase::SharedPtr discharge_kicker_timer_;
 
   int pi_;
   int gpio_ball_sensor_;
   IOExpander io_expander_;
+  bool enable_kicker_charging_;
+  int discharge_kick_count_;
   WheelController wheel_controller_;
 };
 
