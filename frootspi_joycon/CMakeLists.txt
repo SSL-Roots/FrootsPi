@@ -17,47 +17,21 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
+find_package(ament_cmake_python REQUIRED)
 find_package(frootspi_msgs REQUIRED)
-find_package(rclcpp REQUIRED)
-find_package(rclcpp_components REQUIRED)
-find_package(rclcpp_lifecycle REQUIRED)
-
-include_directories(include)
-
-add_library(joycon_component SHARED
-  src/joycon_component.cpp)
-target_compile_definitions(joycon_component
-  PRIVATE "FROOTSPI_JOYCON_BUILDING_DLL")
-ament_target_dependencies(joycon_component
-  frootspi_msgs
-  rclcpp
-  rclcpp_components
-  rclcpp_lifecycle
-)
-rclcpp_components_register_nodes(joycon_component "frootspi_joycon::JoyCon")
-
-ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
 
 ament_export_dependencies(frootspi_msgs)
-ament_export_dependencies(rclcpp)
-ament_export_dependencies(rclcpp_components)
-ament_export_dependencies(rclcpp_lifecycle)
 
-ament_export_include_directories(include)
-ament_export_libraries(joycon_component)
+# python scripts
+ament_python_install_package(${PROJECT_NAME})
+install(PROGRAMS
+    ${PROJECT_NAME}/joycon.py
+    DESTINATION lib/${PROJECT_NAME})
 
-install(
-  DIRECTORY include/
-  DESTINATION include
+install(DIRECTORY
+  config
+  DESTINATION share/${PROJECT_NAME}/
 )
-
-install(TARGETS
-  joycon_component
-  EXPORT export_${PROJECT_NAME}
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
-  INCLUDES DESTINATION include)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

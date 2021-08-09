@@ -47,6 +47,9 @@ static const int GPIO_DRIBBLE_PWM = 13;
 static const int DRIBBLE_PWM_FREQUENCY = 40000;  // kHz
 static const int DRIBBLE_PWM_DUTY_CYCLE = 1e6 / DRIBBLE_PWM_FREQUENCY;  // usec
 
+static const int GPIO_CENTER_LED = 14;
+static const int GPIO_RIGHT_LED = 4;
+
 Driver::Driver(const rclcpp::NodeOptions & options)
 : rclcpp_lifecycle::LifecycleNode("hardware_driver", options),
   pi_(-1), enable_kicker_charging_(false), discharge_kick_count_(0)
@@ -157,9 +160,8 @@ void Driver::callback_dribble_power(const frootspi_msgs::msg::DribblePower::Shar
 
 void Driver::callback_wheel_velocities(const frootspi_msgs::msg::WheelVelocities::SharedPtr msg)
 {
-  std::cout << "車輪目標回転速度は、左前" << std::to_string(msg->front_left);
-  std::cout << "、真ん中後" << std::to_string(msg->back_center);
-  std::cout << "、右前" << std::to_string(msg->back_center) << std::endl;
+  wheel_controller_.set_wheel_velocities(
+    msg->front_right, msg->front_left, msg->back_center);
 }
 
 void Driver::on_kick(
@@ -270,20 +272,26 @@ void Driver::on_set_center_led(
   const std_srvs::srv::SetBool::Request::SharedPtr request,
   std_srvs::srv::SetBool::Response::SharedPtr response)
 {
-  std::cout << "center_ledを操作するで:" << request->data << std::endl;
-
-  response->success = true;
-  response->message = "LEDをセットしたで";
+  if (gpio_write(pi_, GPIO_CENTER_LED, request->data) == 0) {
+    response->success = true;
+    response->message = "LED操作成功";
+  } else {
+    response->success = false;
+    response->message = "LED操作失敗";
+  }
 }
 
 void Driver::on_set_right_led(
   const std_srvs::srv::SetBool::Request::SharedPtr request,
   std_srvs::srv::SetBool::Response::SharedPtr response)
 {
-  std::cout << "right_ledを操作するで:" << request->data << std::endl;
-
-  response->success = true;
-  response->message = "LEDをセットしたで";
+  if (gpio_write(pi_, GPIO_RIGHT_LED, request->data) == 0) {
+    response->success = true;
+    response->message = "LED操作成功";
+  } else {
+    response->success = false;
+    response->message = "LED操作失敗";
+  }
 }
 
 CallbackReturn Driver::on_configure(const rclcpp_lifecycle::State &)
@@ -348,6 +356,11 @@ CallbackReturn Driver::on_configure(const rclcpp_lifecycle::State &)
     return CallbackReturn::FAILURE;
   }
 
+  if (!wheel_controller_.device_open()) {
+    RCLCPP_ERROR(this->get_logger(), "Failed to connect wheel controller.");
+    return CallbackReturn::FAILURE;
+  }
+
   set_mode(pi_, GPIO_SHUTDOWN_SWITCH, PI_INPUT);
 
   // dribbler setup
@@ -367,6 +380,12 @@ CallbackReturn Driver::on_configure(const rclcpp_lifecycle::State &)
   gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_LOW);
   set_mode(pi_, GPIO_KICK_CHARGE_COMPLETE, PI_INPUT);
   set_pull_up_down(pi_, GPIO_KICK_CHARGE_COMPLETE, PI_PUD_UP);  // 外部プルアップあり
+
+  // led setup
+  set_mode(pi_, GPIO_CENTER_LED, PI_OUTPUT);
+  gpio_write(pi_, GPIO_CENTER_LED, PI_LOW);
+  set_mode(pi_, GPIO_RIGHT_LED, PI_OUTPUT);
+  gpio_write(pi_, GPIO_RIGHT_LED, PI_LOW);
 
   return CallbackReturn::SUCCESS;
 }

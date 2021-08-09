@@ -12,86 +12,42 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
+import os
+from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import ExecuteProcess
-from launch.actions import RegisterEventHandler
-from launch.event_handlers import OnProcessExit
-from launch.event_handlers import OnProcessStart
-from launch_ros.actions import ComposableNodeContainer
-from launch_ros.descriptions import ComposableNode
+from launch.actions import DeclareLaunchArgument
+from launch.substitutions import LaunchConfiguration
+from launch_ros.actions import Node
 
 
 def generate_launch_description():
-    container = ComposableNodeContainer(
-        name='frootspi_container',
-        namespace='',
-        package='rclcpp_components',
-        executable='component_container',  # component_container_mtはmulti threads
-        composable_node_descriptions=[
-            ComposableNode(
-                package='frootspi_hardware',
-                plugin='frootspi_hardware::Driver',
-                name='hardware_driver',
-                extra_arguments=[{'use_intra_process_comms': True}],
-                ),
-            ComposableNode(
-                package='frootspi_joycon',
-                plugin='frootspi_joycon::JoyCon',
-                name='frootspi_joycon',
-                extra_arguments=[{'use_intra_process_comms': True}],
-                ),
-        ],
-        output='screen',
+    joydev = LaunchConfiguration('joydev')
+    declare_joydev = DeclareLaunchArgument(
+        'joydev', default_value='/dev/input/js0',
+        description='Device file for JoyStick Controller'
     )
 
-    configure_driver_node = ExecuteProcess(
-        cmd=['ros2 lifecycle set hardware_driver configure'],
-        shell=True,
-        output='screen',
+    joy_config = os.path.join(
+        get_package_share_directory('frootspi_joycon'),
+        'config',
+        'dualshock3.yaml'
     )
 
-    activate_driver_node = ExecuteProcess(
-        cmd=['ros2 lifecycle set hardware_driver activate'],
-        shell=True,
-        output='screen',
+    joycon_node = Node(
+        package='frootspi_joycon',
+        executable='joycon.py',
+        parameters=[joy_config],
     )
 
-    configure_joycon_node = ExecuteProcess(
-        cmd=['ros2 lifecycle set frootspi_joycon configure'],
-        shell=True,
-        output='screen',
-    )
-
-    activate_joycon_node = ExecuteProcess(
-        cmd=['ros2 lifecycle set frootspi_joycon activate'],
-        shell=True,
-        output='screen',
+    joy_node = Node(
+        package='joy_linux',
+        executable='joy_linux_node',
+        parameters=[{'dev': joydev}]
     )
 
     return LaunchDescription([
-        RegisterEventHandler(
-            event_handler=OnProcessStart(
-                target_action=container,
-                on_start=[configure_driver_node],
-            )
-        ),
-        RegisterEventHandler(
-            event_handler=OnProcessExit(
-                target_action=configure_driver_node,
-                on_exit=[activate_driver_node],
-            )
-        ),
-        RegisterEventHandler(
-            event_handler=OnProcessStart(
-                target_action=container,
-                on_start=[configure_joycon_node],
-            )
-        ),
-        RegisterEventHandler(
-            event_handler=OnProcessExit(
-                target_action=configure_joycon_node,
-                on_exit=[activate_joycon_node],
-            )
-        ),
-        container
+        declare_joydev,
+        joy_node,
+        joycon_node
         ])

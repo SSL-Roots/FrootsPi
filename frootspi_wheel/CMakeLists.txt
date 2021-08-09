@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(frootspi_hardware)
+project(frootspi_wheel)
 
 # Default to C99
 if(NOT CMAKE_C_STANDARD)
@@ -21,34 +21,26 @@ find_package(frootspi_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(rclcpp_lifecycle REQUIRED)
-find_package(sensor_msgs REQUIRED)
-find_package(std_srvs REQUIRED)
-find_package(lifecycle_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
 
 include_directories(include)
 
-add_library(driver_component SHARED
-  src/driver_component.cpp
-  src/io_expander.cpp
-  src/wheel_controller.cpp
-)
-target_compile_definitions(driver_component
-  PRIVATE "FROOTSPI_HARDWARE_BUILDING_DLL")
-ament_target_dependencies(driver_component
+add_library(frootspi_wheel_component SHARED
+  src/frootspi_wheel_component.cpp)
+target_compile_definitions(frootspi_wheel_component
+  PRIVATE "FROOTSPI_WHEEL_BUILDING_DLL")
+ament_target_dependencies(frootspi_wheel_component
   frootspi_msgs
   rclcpp
   rclcpp_components
   rclcpp_lifecycle
-  sensor_msgs
-  std_srvs
-  lifecycle_msgs
+  geometry_msgs
 )
-target_link_libraries(driver_component pigpiod_if2)
-rclcpp_components_register_nodes(driver_component "frootspi_hardware::Driver")
+rclcpp_components_register_nodes(frootspi_wheel_component "frootspi_wheel::WheelNode")
 
-add_executable(driver_node src/hardware_driver.cpp)
-target_link_libraries(driver_node driver_component)
-ament_target_dependencies(driver_node
+add_executable(frootspi_wheel_node src/main.cpp)
+target_link_libraries(frootspi_wheel_node frootspi_wheel_component)
+ament_target_dependencies(frootspi_wheel_node
   rclcpp)
 
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
@@ -57,12 +49,10 @@ ament_export_dependencies(frootspi_msgs)
 ament_export_dependencies(rclcpp)
 ament_export_dependencies(rclcpp_components)
 ament_export_dependencies(rclcpp_lifecycle)
-ament_export_dependencies(sensor_msgs)
-ament_export_dependencies(std_srvs)
-ament_export_dependencies(lifecycle_msgs)
+ament_export_dependencies(geometry_msgs)
 
 ament_export_include_directories(include)
-ament_export_libraries(driver_component)
+ament_export_libraries(frootspi_wheel_component)
 
 install(
   DIRECTORY include/
@@ -70,7 +60,7 @@ install(
 )
 
 install(TARGETS
-  driver_component
+  frootspi_wheel_component
   EXPORT export_${PROJECT_NAME}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
@@ -78,12 +68,8 @@ install(TARGETS
   INCLUDES DESTINATION include)
 
 install(TARGETS
-  driver_node
+  frootspi_wheel_node
   DESTINATION lib/${PROJECT_NAME})
-
-install(DIRECTORY
-  config
-  DESTINATION share/${PROJECT_NAME}/)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
