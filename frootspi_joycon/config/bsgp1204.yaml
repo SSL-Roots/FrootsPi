@@ -1,0 +1,10 @@
+joycon:
+  ros__parameters:
+    button_chip_kick      : 2 # 3ボタン
+    button_straight_kick  : 1 # 2ボタン
+    button_dribble        : 3 # 4ボタン
+    button_unlock_move    : 6 # 7ボタン
+    button_unlock_kick    : 7 # 8ボタン
+    axis_vel_sway         : 0 # 左ステッィク左右(左が負)
+    axis_vel_surge        : 1 # 左ステッィク上下(上が負)
+    axis_vel_angular      : 2 # 右ステッィク左右(左が負)
