@@ -1,5 +1,7 @@
 # LCDにセットするテキスト
-string text
+# text1が上段、text2が下段
+string text1
+string text2
 ---
 # セットに成功したらtrueを返す
 bool success

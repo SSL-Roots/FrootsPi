@@ -30,6 +30,7 @@ include_directories(include)
 add_library(driver_component SHARED
   src/driver_component.cpp
   src/io_expander.cpp
+  src/lcd_driver.cpp
   src/wheel_controller.cpp
 )
 target_compile_definitions(driver_component
