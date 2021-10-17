@@ -74,14 +74,16 @@ void Driver::on_polling_timer()
 
   // バッテリー電圧をパブリッシュ
   auto battery_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
-  battery_voltage_msg->voltage = 14.8;  // バッテリー電圧 [v]をセット
+  // battery_voltage_msg->voltage = 14.8;  // バッテリー電圧 [v]をセット
   battery_voltage_msg->voltage_status =
     frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_FULL;
   pub_battery_voltage_->publish(std::move(battery_voltage_msg));
 
   // UPS(無停電電源装置)電圧をパブリッシュ
   auto ups_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
-  ups_voltage_msg->voltage = 3.4;  // UPS電圧 [v]をセット
+  battery_monitor_.read(battery_voltage_msg->voltage, ups_voltage_msg->voltage);
+
+  // ups_voltage_msg->voltage = 3.4;  // UPS電圧 [v]をセット
   ups_voltage_msg->voltage_status =
     frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_TOO_LOW;
   pub_ups_voltage_->publish(std::move(ups_voltage_msg));
@@ -356,6 +358,11 @@ CallbackReturn Driver::on_configure(const rclcpp_lifecycle::State &)
 
   if (!io_expander_.open(pi_)) {
     RCLCPP_ERROR(this->get_logger(), "Failed to connect IO expander.");
+    return CallbackReturn::FAILURE;
+  }
+
+  if (!battery_monitor_.open(pi_)) {
+    RCLCPP_ERROR(this->get_logger(), "Failed to connect Battery Monitor.");
     return CallbackReturn::FAILURE;
   }
 
