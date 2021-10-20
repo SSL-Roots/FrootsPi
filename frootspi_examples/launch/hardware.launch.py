@@ -49,7 +49,7 @@ def generate_launch_description():
     )
 
     start_pigpiod = ExecuteProcess(
-        cmd=['sudo pigpiod'],
+        cmd=['sudo pigpiod -s 1'],
         shell=True,
         output='screen',
     )
