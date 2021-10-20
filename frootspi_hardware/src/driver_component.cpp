@@ -74,16 +74,16 @@ void Driver::on_polling_timer()
 
   // バッテリー電圧をパブリッシュ
   auto battery_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
-  // battery_voltage_msg->voltage = 14.8;  // バッテリー電圧 [v]をセット
-  battery_voltage_msg->voltage_status =
-    frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_FULL;
-  pub_battery_voltage_->publish(std::move(battery_voltage_msg));
+  //battery_voltage_msg->voltage = 14.8;  // バッテリー電圧 [v]をセット
+
 
   // UPS(無停電電源装置)電圧をパブリッシュ
   auto ups_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
   battery_monitor_.read(battery_voltage_msg->voltage, ups_voltage_msg->voltage);
-
-  // ups_voltage_msg->voltage = 3.4;  // UPS電圧 [v]をセット
+  battery_voltage_msg->voltage_status =
+    frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_FULL;
+  pub_battery_voltage_->publish(std::move(battery_voltage_msg));
+  //ups_voltage_msg->voltage = 3.4;  // UPS電圧 [v]をセット
   ups_voltage_msg->voltage_status =
     frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_TOO_LOW;
   pub_ups_voltage_->publish(std::move(ups_voltage_msg));
@@ -460,6 +460,7 @@ CallbackReturn Driver::on_cleanup(const rclcpp_lifecycle::State &)
   polling_timer_.reset();
 
   io_expander_.close();
+  battery_monitor_.close();
   pigpio_stop(pi_);
 
   return CallbackReturn::SUCCESS;
@@ -479,6 +480,7 @@ CallbackReturn Driver::on_shutdown(const rclcpp_lifecycle::State &)
   polling_timer_.reset();
 
   io_expander_.close();
+  battery_monitor_.close();
   pigpio_stop(pi_);
 
   return CallbackReturn::SUCCESS;

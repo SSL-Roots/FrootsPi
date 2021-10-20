@@ -25,7 +25,7 @@ static const char MCP3202_CH1 = 0b11;  // Ch1電位取得
 static const float MCP3202_RESOLUTION = 4096;  // 分解能12bit
 static const float MCP3202_VDD = 3.3;  // MCP3203 VDD電圧
 static const float BATTERY_VOLTAGE_RATIO = 6.1;  // BATTERY電圧分圧比　逆数
-static const float UPS_VOLTAGE_RATIO = 3;  // UPS電圧分圧比 逆数
+static const float UPS_VOLTAGE_RATIO = 2;  // UPS電圧分圧比 逆数
 
 BatteryMonitor::BatteryMonitor()
 : pi_(-1)
@@ -39,11 +39,11 @@ BatteryMonitor::~BatteryMonitor()
 bool BatteryMonitor::open(const int pi)
 {
   // Ref: http://abyz.me.uk/rpi/pigpio/pdif2.html#spi_open
-  const unsigned CHANNEL = 0;  // Chip select
-  const unsigned BAUDRATE = 500000;  // MCP3202の最大クロック周波数は0.9MHz
+  const unsigned CHANNEL = 2;  // Chip select
+  const unsigned BAUDRATE = 900000;  // MCP3202の最大クロック周波数は0.9MHz
   const unsigned FLAG_MODE = 0b00;  // SPIモード
   const unsigned FLAG_PX = 0b000;  // CE0~2の論理設定、0でアクティブロー
-  const unsigned FLAG_UX = 0b011;  // CE0~2のGPIO設定、0でGPIOをSPI用に確保
+  const unsigned FLAG_UX = 0b000;  // CE0~2のGPIO設定、0でGPIOをSPI用に確保
   const unsigned FLAG_A = 0b1;  // 0でメイン（SPI0）、1でAuxiliary（SPI1）
   const unsigned FLAG_W = 0b0;  // メインSPI専用。1で3線SPIモード
   const unsigned FLAG_N = 0b0000;  // 3線モードでMISO切替時に書き込むバイト数
@@ -111,7 +111,7 @@ bool BatteryMonitor::control_register(const char channel, float * read_data)
   // Page 6.
   char tx_data[3] = {0};
   char rx_data[3] = {0};
-  // op code = 0b 0001 {SGL}{ODD}{MSBF}0 000 0000 0000
+  // op code = 0b 0001 {SGL}{ODD}{MSBF}0 0000 0000 0000
   tx_data[0] = 0x01;
   tx_data[1] |= channel << 6;
   tx_data[1] |= MCP3202_MSB << 5;
