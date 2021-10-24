@@ -124,6 +124,10 @@ void Driver::on_polling_timer()
   } else {
     timeout_has_printed_ = false;
   }
+  
+  // フロント基板へ情報を送信
+  front_display_communicator_.send_data();
+
 }
 
 void Driver::on_discharge_kicker_timer()
@@ -385,6 +389,11 @@ CallbackReturn Driver::on_configure(const rclcpp_lifecycle::State &)
     return CallbackReturn::FAILURE;
   }
 
+  if (!front_display_communicator_.open(pi_)) {
+    RCLCPP_ERROR(this->get_logger(), "Failed to connect Front Dislplay Communicator.");
+    return CallbackReturn::FAILURE;
+  }
+
   if (!wheel_controller_.device_open()) {
     RCLCPP_ERROR(this->get_logger(), "Failed to connect wheel controller.");
     return CallbackReturn::FAILURE;
@@ -480,6 +489,8 @@ CallbackReturn Driver::on_cleanup(const rclcpp_lifecycle::State &)
   io_expander_.close();
   capacitor_monitor_.close();
   battery_monitor_.close();
+  lcd_driver_.close();
+  front_display_communicator_.close();
   pigpio_stop(pi_);
 
   return CallbackReturn::SUCCESS;
@@ -501,6 +512,8 @@ CallbackReturn Driver::on_shutdown(const rclcpp_lifecycle::State &)
   io_expander_.close();
   capacitor_monitor_.close();
   battery_monitor_.close();
+  lcd_driver_.close();
+  front_display_communicator_.close();
   pigpio_stop(pi_);
 
   return CallbackReturn::SUCCESS;

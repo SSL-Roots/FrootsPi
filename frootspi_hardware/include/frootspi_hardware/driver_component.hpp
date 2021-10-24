@@ -24,6 +24,7 @@
 #include "frootspi_hardware/capacitor_monitor.hpp"
 #include "frootspi_hardware/lcd_driver.hpp"
 #include "frootspi_hardware/battery_monitor.hpp"
+#include "frootspi_hardware/front_display_communicator.hpp"
 #include "frootspi_hardware/wheel_controller.hpp"
 #include "frootspi_msgs/msg/ball_detection.hpp"
 #include "frootspi_msgs/msg/battery_voltage.hpp"
@@ -123,6 +124,7 @@ private:
   BatteryMonitor battery_monitor_;
   LCDDriver lcd_driver_;
   CapacitorMonitor capacitor_monitor_;
+  FrontDisplayCommunicator front_display_communicator_;
   bool enable_kicker_charging_;
   int discharge_kick_count_;
   WheelController wheel_controller_;
