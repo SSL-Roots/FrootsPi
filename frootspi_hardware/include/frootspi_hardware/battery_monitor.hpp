@@ -15,6 +15,9 @@
 #ifndef FROOTSPI_HARDWARE__BATTERY_MONITOR_HPP_
 #define FROOTSPI_HARDWARE__BATTERY_MONITOR_HPP_
 
+#include <stdio.h>
+#include "frootspi_msgs/msg/battery_voltage.hpp"
+
 class BatteryMonitor
 {
 public:
@@ -23,7 +26,8 @@ public:
 
   bool open(const int pi);
   bool close();
-  bool read(float & battery_voltage, float & ups_voltage);
+  bool main_battery_info_read(float & voltage, unsigned char & voltage_status);
+  bool sub_battery_info_read(float & voltage, unsigned char & voltage_status);
 
 private:
   bool control_register(const char channel, float * read_data);

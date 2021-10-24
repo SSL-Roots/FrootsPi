@@ -24,8 +24,12 @@ static const char MCP3202_CH0 = 0b10;  // Ch0電位取得
 static const char MCP3202_CH1 = 0b11;  // Ch1電位取得
 static const float MCP3202_RESOLUTION = 4096;  // 分解能12bit
 static const float MCP3202_VDD = 3.3;  // MCP3203 VDD電圧
-static const float BATTERY_VOLTAGE_RATIO = 6.1;  // BATTERY電圧分圧比　逆数
-static const float UPS_VOLTAGE_RATIO = 2;  // UPS電圧分圧比 逆数
+static const float MAIN_BATTERY_VOLTAGE_RATIO = 6.1;  // BATTERY電圧分圧比　逆数
+static const float SUB_BATTERY_VOLTAGE_RATIO = 3;  // UPS電圧分圧比 逆数
+static const int MAX_THRESH_STATUS_NUM = 4;
+static const float MAIN_BATTERY_STATUS_THRESH_VOLTAGE[MAX_THRESH_STATUS_NUM] =
+{12.8, 14.8, 15.5, 16.8};
+static const float SUB_BATTERY_STATUS_THRESH_VOLTAGE[MAX_THRESH_STATUS_NUM] = {6.5, 6.8, 8, 9};
 
 BatteryMonitor::BatteryMonitor()
 : pi_(-1)
@@ -84,23 +88,90 @@ bool BatteryMonitor::close()
   }
 }
 
-bool BatteryMonitor::read(float & battery_voltage, float & ups_voltage)
+bool BatteryMonitor::main_battery_info_read(float & voltage, unsigned char & voltage_status)
 {
   float read_data = 0;
+  unsigned char status_num = 0;
 
   if (!control_register(MCP3202_CH0, &read_data)) {
-    RCLCPP_ERROR(LOGGER, "Failed to read from AD.");
+    RCLCPP_ERROR(LOGGER, "Failed to read from AD CH0.");
     return false;
   }
+  voltage = read_data * MAIN_BATTERY_VOLTAGE_RATIO;
 
-  battery_voltage = read_data * BATTERY_VOLTAGE_RATIO;
+  for (int i = MAX_THRESH_STATUS_NUM; i > 0; i--) {
+    if (voltage < MAIN_BATTERY_STATUS_THRESH_VOLTAGE[i - 1]) {
+      continue;
+    } else {
+      status_num = i;
+      break;
+    }
+  }
+
+  switch (status_num) {
+    case frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_UNKNOWN:
+      voltage_status = frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_UNKNOWN;
+      break;
+    case frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_TOO_LOW:
+      voltage_status = frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_TOO_LOW;
+      break;
+    case frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_NEED_CHARGING:
+      voltage_status = frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_NEED_CHARGING;
+      break;
+    case frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_OK:
+      voltage_status = frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_OK;
+      break;
+    case frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_FULL:
+      voltage_status = frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_FULL;
+      break;
+    default:
+      voltage_status = frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_UNKNOWN;
+      break;
+  }
+
+  return true;
+}
+
+bool BatteryMonitor::sub_battery_info_read(float & voltage, unsigned char & voltage_status)
+{
+  float read_data = 0;
+  unsigned char status_num = 0;
 
   if (!control_register(MCP3202_CH1, &read_data)) {
-    RCLCPP_ERROR(LOGGER, "Failed to read from AD.");
+    RCLCPP_ERROR(LOGGER, "Failed to read from AD CH1.");
     return false;
   }
+  voltage = read_data * SUB_BATTERY_VOLTAGE_RATIO;
 
-  ups_voltage = read_data * UPS_VOLTAGE_RATIO;
+  for (int i = MAX_THRESH_STATUS_NUM; i > 0; i--) {
+    if (voltage < SUB_BATTERY_STATUS_THRESH_VOLTAGE[i - 1]) {
+      continue;
+    } else {
+      status_num = i;
+      break;
+    }
+  }
+
+  switch (status_num) {
+    case frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_UNKNOWN:
+      voltage_status = frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_UNKNOWN;
+      break;
+    case frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_TOO_LOW:
+      voltage_status = frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_TOO_LOW;
+      break;
+    case frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_NEED_CHARGING:
+      voltage_status = frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_NEED_CHARGING;
+      break;
+    case frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_OK:
+      voltage_status = frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_OK;
+      break;
+    case frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_FULL:
+      voltage_status = frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_FULL;
+      break;
+    default:
+      voltage_status = frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_UNKNOWN;
+      break;
+  }
 
   return true;
 }
@@ -122,6 +193,7 @@ bool BatteryMonitor::control_register(const char channel, float * read_data)
     return false;
   }
 
-  *read_data = (float)((rx_data[1] & 0x0f) << 8 | rx_data[2]) / MCP3202_RESOLUTION * MCP3202_VDD;
+  *read_data =
+    static_cast<float>((rx_data[1] & 0x0f) << 8 | rx_data[2]) / MCP3202_RESOLUTION * MCP3202_VDD;
   return true;
 }
