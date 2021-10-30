@@ -20,7 +20,7 @@
 union FrontIndicateData{
     char Indicate_data[5];
     struct{
-        char    RobotID         :4;
+        unsigned char    RobotID         :4;
         char    RobotMode       :2;
         bool    ComAIPC         :1;
         bool    BallSens        :1;
