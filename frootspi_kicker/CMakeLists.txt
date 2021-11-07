@@ -17,18 +17,61 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
-# uncomment the following section in order to fill in
-# further dependencies manually.
-# find_package(<dependency> REQUIRED)
+find_package(frootspi_msgs REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(rclcpp_components REQUIRED)
+find_package(rclcpp_lifecycle REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(std_srvs REQUIRED)
+
+include_directories(include)
+
+add_library(frootspi_kicker_component SHARED
+  src/frootspi_kicker_component.cpp)
+target_compile_definitions(frootspi_kicker_component
+  PRIVATE "FROOTSPI_KICKER_BUILDING_DLL")
+ament_target_dependencies(frootspi_kicker_component
+  frootspi_msgs
+  rclcpp
+  rclcpp_components
+  rclcpp_lifecycle
+)
+rclcpp_components_register_nodes(frootspi_kicker_component "frootspi_kicker::Driver")
+
+add_executable(frootspi_kicker_node src/main.cpp)
+target_link_libraries(frootspi_kicker_node frootspi_kicker_component)
+ament_target_dependencies(frootspi_kicker_node
+  rclcpp)
+
+ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
+
+ament_export_dependencies(frootspi_msgs)
+ament_export_dependencies(rclcpp)
+ament_export_dependencies(rclcpp_components)
+ament_export_dependencies(rclcpp_lifecycle)
+
+ament_export_include_directories(include)
+ament_export_libraries(frootspi_kicker_component)
+
+install(
+  DIRECTORY include/
+  DESTINATION include
+)
+
+install(TARGETS
+  frootspi_kicker_component
+  EXPORT export_${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include)
+
+install(TARGETS
+  frootspi_kicker_node
+  DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
-  # the following line skips the linter which checks for copyrights
-  # uncomment the line when a copyright and license is not present in all source files
-  #set(ament_cmake_copyright_FOUND TRUE)
-  # the following line skips cpplint (only works in a git repo)
-  # uncomment the line when this package is not in a git repo
-  #set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
 endif()
 
