@@ -88,16 +88,8 @@ void Driver::on_polling_timer()
 
   // キッカー（昇圧回路）電圧をパブリッシュ
   auto kicker_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
-  // kicker_voltage_msg->voltage = 200.0;  // キッカー電圧 [v]をセット
   capacitor_monitor_.capacitor_info_read(
     kicker_voltage_msg->voltage, kicker_voltage_msg->voltage_status);
-  // if (gpio_read(pi_, GPIO_KICK_CHARGE_COMPLETE)) {  // 負論理のため
-  //   kicker_voltage_msg->voltage_status =
-  //     frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_CHARGED;
-  // } else {
-  //   kicker_voltage_msg->voltage_status =
-  //     frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_FULL;
-  // }
   pub_kicker_voltage_->publish(std::move(kicker_voltage_msg));
 
   // スイッチ状態をパブリッシュ
