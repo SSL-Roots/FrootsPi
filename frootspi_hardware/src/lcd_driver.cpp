@@ -22,7 +22,7 @@
 static const rclcpp::Logger LOGGER = rclcpp::get_logger("lcd_driver");
 
 LCDDriver::LCDDriver()
-: pi_(-1)
+: pi_(-1), is_initialized_(false)
 {
 }
 
@@ -51,14 +51,21 @@ bool LCDDriver::open(const int pi)
     return false;
   }
 
+  is_initialized_ = true;
   return true;
 }
 
 bool LCDDriver::close()
 {
+  if (!is_initialized_) {
+    // 初期化されていないときはスルー
+    return false;
+  }
+
   int result = i2c_close(pi_, i2c_handler_);
 
   if (result >= 0) {
+    is_initialized_ = false;
     return true;
   } else {
     return false;
@@ -75,6 +82,11 @@ bool LCDDriver::write_texts(const std::string text1, const std::string text2)
 
   const unsigned START_ADDRESS_FIRST_LINE = 0x00;
   const unsigned START_ADDRESS_SECOND_LINE = 0x40;
+
+  if (!is_initialized_) {
+    // 初期化されていないときはスルー
+    return false;
+  }
 
   clear_display();
   set_address(START_ADDRESS_FIRST_LINE);
