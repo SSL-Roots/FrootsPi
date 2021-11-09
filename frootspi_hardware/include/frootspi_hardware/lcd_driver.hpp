@@ -54,6 +54,7 @@ private:
 
   int i2c_handler_;
   int pi_;
+  bool is_initialized_;
 };
 
 #endif  // FROOTSPI_HARDWARE__LCD_DRIVER_HPP_
