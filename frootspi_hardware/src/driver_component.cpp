@@ -359,9 +359,9 @@ CallbackReturn Driver::on_configure(const rclcpp_lifecycle::State &)
     return CallbackReturn::FAILURE;
   }
 
-  if (!lcd_driver_.open(pi_)) {
-    RCLCPP_ERROR(this->get_logger(), "Failed to connect LCD Driver.");
-    return CallbackReturn::FAILURE;
+  bool is_lcd_initialized = lcd_driver_.open(pi_);
+  if (!is_lcd_initialized) {
+    RCLCPP_WARN(this->get_logger(), "Failed to connect LCD Driver.");
   }
   lcd_driver_.write_texts("FrootsPi", "ﾌﾙｰﾂﾊﾟｲ!");
 
