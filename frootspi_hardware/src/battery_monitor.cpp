@@ -145,7 +145,7 @@ bool BatteryMonitor::sub_battery_info_read(float & voltage, unsigned char & volt
   for (int i = MAX_THRESH_STATUS_NUM; i > 0; i--) {
     if (voltage < SUB_BATTERY_STATUS_THRESH_VOLTAGE[i - 1]) {
       continue;
-    } 
+    }
     status_num = i;
     break;
   }
