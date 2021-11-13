@@ -29,7 +29,7 @@ public:
   bool capacitor_info_read(float & voltage, unsigned char & voltage_status);
 
 private:
-  bool control_register(float * read_data);
+  bool read_adc(float * read_data);
   int i2c_handler_;
   int pi_;
 };

@@ -70,7 +70,7 @@ bool CapacitorMonitor::capacitor_info_read(float & voltage, unsigned char & volt
   float read_data = 0;
   unsigned char status_num = 0;
 
-  if (!control_register(&read_data)) {
+  if (!read_adc(&read_data)) {
     RCLCPP_ERROR(LOGGER, "Failed to read from MCP3221 AD .");
     return false;
   }
@@ -79,10 +79,10 @@ bool CapacitorMonitor::capacitor_info_read(float & voltage, unsigned char & volt
   for (int i = MAX_THRESH_STATUS_NUM; i > 0; i--) {
     if (voltage < CAPACITOR_STATUS_THRESH_VOLTAGE[i - 1]) {
       continue;
-    } else {
-      status_num = i;
-      break;
     }
+
+    status_num = i;
+    break;
   }
 
   switch (status_num) {
@@ -109,7 +109,7 @@ bool CapacitorMonitor::capacitor_info_read(float & voltage, unsigned char & volt
   return true;
 }
 
-bool CapacitorMonitor::control_register(float * read_data)
+bool CapacitorMonitor::read_adc(float * read_data)
 {
   // Reference: http://ww1.microchip.com/downloads/jp/DeviceDoc/21732D_JP.pdf
   // Page 17.
