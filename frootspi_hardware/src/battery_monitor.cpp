@@ -93,7 +93,7 @@ bool BatteryMonitor::main_battery_info_read(float & voltage, unsigned char & vol
   float read_data = 0;
   unsigned char status_num = 0;
 
-  if (!control_register(MCP3202_CH0, &read_data)) {
+  if (!read_adc(MCP3202_CH0, &read_data)) {
     RCLCPP_ERROR(LOGGER, "Failed to read from AD CH0.");
     return false;
   }
@@ -102,10 +102,9 @@ bool BatteryMonitor::main_battery_info_read(float & voltage, unsigned char & vol
   for (int i = MAX_THRESH_STATUS_NUM; i > 0; i--) {
     if (voltage < MAIN_BATTERY_STATUS_THRESH_VOLTAGE[i - 1]) {
       continue;
-    } else {
-      status_num = i;
-      break;
     }
+    status_num = i;
+    break;
   }
 
   switch (status_num) {
@@ -137,7 +136,7 @@ bool BatteryMonitor::sub_battery_info_read(float & voltage, unsigned char & volt
   float read_data = 0;
   unsigned char status_num = 0;
 
-  if (!control_register(MCP3202_CH1, &read_data)) {
+  if (!read_adc(MCP3202_CH1, &read_data)) {
     RCLCPP_ERROR(LOGGER, "Failed to read from AD CH1.");
     return false;
   }
@@ -146,10 +145,9 @@ bool BatteryMonitor::sub_battery_info_read(float & voltage, unsigned char & volt
   for (int i = MAX_THRESH_STATUS_NUM; i > 0; i--) {
     if (voltage < SUB_BATTERY_STATUS_THRESH_VOLTAGE[i - 1]) {
       continue;
-    } else {
-      status_num = i;
-      break;
-    }
+    } 
+    status_num = i;
+    break;
   }
 
   switch (status_num) {
@@ -176,7 +174,7 @@ bool BatteryMonitor::sub_battery_info_read(float & voltage, unsigned char & volt
   return true;
 }
 
-bool BatteryMonitor::control_register(const char channel, float * read_data)
+bool BatteryMonitor::read_adc(const char channel, float * read_data)
 {
   // Reference: http://ww1.microchip.com/downloads/jp/DeviceDoc/21034A_JP.pdf
   // Page 6.

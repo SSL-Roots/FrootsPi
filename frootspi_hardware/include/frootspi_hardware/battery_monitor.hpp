@@ -30,7 +30,7 @@ public:
   bool sub_battery_info_read(float & voltage, unsigned char & voltage_status);
 
 private:
-  bool control_register(const char channel, float * read_data);
+  bool read_adc(const char channel, float * read_data);
   int spi_handler_;
   int pi_;
 };
