@@ -74,16 +74,16 @@ void Driver::on_polling_timer()
 
   // バッテリー電圧をパブリッシュ
   auto battery_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
-  battery_voltage_msg->voltage = 14.8;  // バッテリー電圧 [v]をセット
-  battery_voltage_msg->voltage_status =
-    frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_FULL;
+  battery_monitor_.main_battery_info_read(
+    battery_voltage_msg->voltage, battery_voltage_msg->voltage_status);
+  // frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_FULL;
   pub_battery_voltage_->publish(std::move(battery_voltage_msg));
 
   // UPS(無停電電源装置)電圧をパブリッシュ
   auto ups_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
-  ups_voltage_msg->voltage = 3.4;  // UPS電圧 [v]をセット
-  ups_voltage_msg->voltage_status =
-    frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_TOO_LOW;
+  battery_monitor_.sub_battery_info_read(
+    ups_voltage_msg->voltage, ups_voltage_msg->voltage_status);
+  // frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_TOO_LOW;
   pub_ups_voltage_->publish(std::move(ups_voltage_msg));
 
   // キッカー（昇圧回路）電圧をパブリッシュ
@@ -91,7 +91,7 @@ void Driver::on_polling_timer()
   kicker_voltage_msg->voltage = 200.0;  // キッカー電圧 [v]をセット
   if (gpio_read(pi_, GPIO_KICK_CHARGE_COMPLETE)) {  // 負論理のため
     kicker_voltage_msg->voltage_status =
-      frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_CHARGED;
+      frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_NEED_CHARGING;
   } else {
     kicker_voltage_msg->voltage_status =
       frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_FULL;
@@ -359,6 +359,11 @@ CallbackReturn Driver::on_configure(const rclcpp_lifecycle::State &)
     return CallbackReturn::FAILURE;
   }
 
+  if (!battery_monitor_.open(pi_)) {
+    RCLCPP_ERROR(this->get_logger(), "Failed to connect Battery Monitor.");
+    return CallbackReturn::FAILURE;
+  }
+
   if (!lcd_driver_.open(pi_)) {
     RCLCPP_ERROR(this->get_logger(), "Failed to connect LCD Driver.");
     return CallbackReturn::FAILURE;
@@ -453,6 +458,7 @@ CallbackReturn Driver::on_cleanup(const rclcpp_lifecycle::State &)
   polling_timer_.reset();
 
   io_expander_.close();
+  battery_monitor_.close();
   pigpio_stop(pi_);
 
   return CallbackReturn::SUCCESS;
@@ -472,6 +478,7 @@ CallbackReturn Driver::on_shutdown(const rclcpp_lifecycle::State &)
   polling_timer_.reset();
 
   io_expander_.close();
+  battery_monitor_.close();
   pigpio_stop(pi_);
 
   return CallbackReturn::SUCCESS;

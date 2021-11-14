@@ -49,7 +49,7 @@ bool IOExpander::open(const int pi)
   const unsigned BAUDRATE = 1000000;  // MCP23S08の最大クロック周波数は10MHz
   const unsigned FLAG_MODE = 0b00;  // SPIモード
   const unsigned FLAG_PX = 0b000;  // CE0~2の論理設定、0でアクティブロー
-  const unsigned FLAG_UX = 0b110;  // CE0~2のGPIO設定、0でGPIOをSPI用に確保
+  const unsigned FLAG_UX = 0b000;  // CE0~2のGPIO設定、0でGPIOをSPI用に確保
   const unsigned FLAG_A = 0b1;  // 0でメイン（SPI0）、1でAuxiliary（SPI1）
   const unsigned FLAG_W = 0b0;  // メインSPI専用。1で3線SPIモード
   const unsigned FLAG_N = 0b0000;  // 3線モードでMISO切替時に書き込むバイト数
