@@ -15,15 +15,24 @@
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument
 from launch.actions import ExecuteProcess
 from launch.actions import RegisterEventHandler
 from launch.event_handlers import OnProcessExit
 from launch.event_handlers import OnProcessStart
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import ComposableNodeContainer
+from launch_ros.actions import PushRosNamespace
 from launch_ros.descriptions import ComposableNode
 
 
 def generate_launch_description():
+    declare_arg_robot_id = DeclareLaunchArgument(
+        'robot_id', default_value='0',
+        description=('Set own ID.')
+    )
+    push_ns = PushRosNamespace(['robot', LaunchConfiguration('robot_id')])
+
     gpio_config = os.path.join(
         get_package_share_directory('frootspi_hardware'),
         'config',
@@ -50,12 +59,18 @@ def generate_launch_description():
                 name='wheel',
                 extra_arguments=[{'use_intra_process_comms': True}],
                 ),
+            ComposableNode(
+                package='frootspi_conductor',
+                plugin='frootspi_conductor::Conductor',
+                name='frootspi_conductor',
+                extra_arguments=[{'use_intra_process_comms': True}],
+                ),
         ],
         output='screen',
     )
 
     start_pigpiod = ExecuteProcess(
-        cmd=['sudo pigpiod'],
+        cmd=['sudo pigpiod -s 1'],  # サンプリングレートを1usecに変更
         shell=True,
         output='screen',
     )
@@ -79,6 +94,8 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
+        declare_arg_robot_id,
+        push_ns,
         start_pigpiod,
         start_socket_can0,
         RegisterEventHandler(
