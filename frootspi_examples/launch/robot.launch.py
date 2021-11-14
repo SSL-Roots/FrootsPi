@@ -82,13 +82,13 @@ def generate_launch_description():
     )
 
     configure_hardware_node = ExecuteProcess(
-        cmd=['ros2 lifecycle set hardware_driver configure'],
+        cmd=[['ros2 lifecycle set robot', LaunchConfiguration('id'), '/hardware_driver configure']],
         shell=True,
         output='screen',
     )
 
     activate_hardware_node = ExecuteProcess(
-        cmd=['ros2 lifecycle set hardware_driver activate'],
+        cmd=[['ros2 lifecycle set robot', LaunchConfiguration('id'), '/hardware_driver activate']],
         shell=True,
         output='screen',
     )
