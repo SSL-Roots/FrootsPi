@@ -16,6 +16,7 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import ComposableNodeContainer
+from launch_ros.actions import PushRosNamespace
 from launch_ros.descriptions import ComposableNode
 
 
@@ -24,11 +25,9 @@ def generate_launch_description():
         'robot_id', default_value='0',
         description=('Set own ID.')
     )
+    push_ns = PushRosNamespace(['robot', LaunchConfiguration('robot_id')])
 
     # robot_id = LaunchConfiguration('robot_id')
-    robot_id = 0
-    namespace_str = 'robot' + str(robot_id)
-    node_name = 'frootspi_conductor'
     container = ComposableNodeContainer(
         name='frootspi_container',
         namespace='',
@@ -38,8 +37,7 @@ def generate_launch_description():
             ComposableNode(
                 package='frootspi_conductor',
                 plugin='frootspi_conductor::Conductor',
-                name=node_name,
-                namespace=namespace_str,
+                name='frootspi_conductor',
                 extra_arguments=[{'use_intra_process_comms': True}],
                 ),
         ],
@@ -48,5 +46,6 @@ def generate_launch_description():
 
     return LaunchDescription([
         declare_arg_robot_id,
+        push_ns,
         container
         ])
