@@ -21,7 +21,6 @@ find_package(consai_frootspi_msgs REQUIRED)
 find_package(frootspi_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
-find_package(rclcpp_lifecycle REQUIRED)
 find_package(geometry_msgs REQUIRED)
 
 include_directories(include)
@@ -35,7 +34,6 @@ ament_target_dependencies(conductor_component
   frootspi_msgs
   rclcpp
   rclcpp_components
-  rclcpp_lifecycle
   geometry_msgs
 )
 rclcpp_components_register_nodes(conductor_component "frootspi_conductor::Conductor")
@@ -46,7 +44,6 @@ ament_export_dependencies(consai_frootspi_msgs)
 ament_export_dependencies(frootspi_msgs)
 ament_export_dependencies(rclcpp)
 ament_export_dependencies(rclcpp_components)
-ament_export_dependencies(rclcpp_lifecycle)
 
 ament_export_include_directories(include)
 ament_export_libraries(conductor_component)

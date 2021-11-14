@@ -14,10 +14,6 @@
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
-from launch.actions import ExecuteProcess
-from launch.actions import RegisterEventHandler
-from launch.event_handlers import OnProcessExit
-from launch.event_handlers import OnProcessStart
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import ComposableNodeContainer
 from launch_ros.descriptions import ComposableNode
@@ -50,31 +46,7 @@ def generate_launch_description():
         output='screen',
     )
 
-    configure_conductor_node = ExecuteProcess(
-        cmd=['ros2 lifecycle set ' + namespace_str + '/' + node_name + ' configure'],
-        shell=True,
-        output='screen',
-    )
-
-    activate_conductor_node = ExecuteProcess(
-        cmd=['ros2 lifecycle set ' + namespace_str + '/' + node_name + ' activate'],
-        shell=True,
-        output='screen',
-    )
-
     return LaunchDescription([
         declare_arg_robot_id,
-        RegisterEventHandler(
-            event_handler=OnProcessStart(
-                target_action=container,
-                on_start=[configure_conductor_node],
-            )
-        ),
-        RegisterEventHandler(
-            event_handler=OnProcessExit(
-                target_action=configure_conductor_node,
-                on_exit=[activate_conductor_node],
-            )
-        ),
         container
         ])

@@ -20,13 +20,20 @@
 #include "frootspi_conductor/conductor_component.hpp"
 #include "rclcpp/rclcpp.hpp"
 
-using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
-
 namespace frootspi_conductor
 {
 
 Conductor::Conductor(const rclcpp::NodeOptions & options)
-: rclcpp_lifecycle::LifecycleNode("frootspi_conductor", options) {
+: Node("frootspi_conductor", options) {
+  using namespace std::placeholders;  // for _1, _2, _3...
+
+  sub_command_ = create_subscription<RobotCommand>(
+    "command", 1, std::bind(&Conductor::callback_commands, this, _1));
+
+  pub_target_velocity_ = create_publisher<geometry_msgs::msg::Twist>("target_velocity", 1);
+  pub_dribble_power_ = create_publisher<frootspi_msgs::msg::DribblePower>("dribble_power", 1);
+  pub_kick_power_ = create_publisher<std_msgs::msg::Float32>("kick_power", 1);
+  pub_kick_flag_ = create_publisher<std_msgs::msg::Int16>("kick_flag", 1);
 }
 
 void Conductor::callback_commands(const RobotCommand::SharedPtr msg)
@@ -61,71 +68,6 @@ void Conductor::callback_commands(const RobotCommand::SharedPtr msg)
   auto dribble_power = std::make_unique<frootspi_msgs::msg::DribblePower>();
   dribble_power->power = msg->dribble_power;
   pub_dribble_power_->publish(std::move(dribble_power));
-}
-
-CallbackReturn Conductor::on_configure(const rclcpp_lifecycle::State &)
-{
-  using namespace std::placeholders;  // for _1, _2, _3...
-
-  RCLCPP_INFO(this->get_logger(), "on_configure() is called.");
-
-  sub_command_ = create_subscription<RobotCommand>(
-    "command", 1, std::bind(&Conductor::callback_commands, this, _1));
-
-  pub_target_velocity_ = create_publisher<geometry_msgs::msg::Twist>("target_velocity", 1);
-  pub_dribble_power_ = create_publisher<frootspi_msgs::msg::DribblePower>("dribble_power", 1);
-  pub_kick_power_ = create_publisher<std_msgs::msg::Float32>("kick_power", 1);
-  pub_kick_flag_ = create_publisher<std_msgs::msg::Int16>("kick_flag", 1);
-
-  return CallbackReturn::SUCCESS;
-}
-
-CallbackReturn Conductor::on_activate(const rclcpp_lifecycle::State &)
-{
-  RCLCPP_INFO(this->get_logger(), "on_activate() is called.");
-
-  pub_target_velocity_->on_activate();
-  pub_dribble_power_->on_activate();
-  pub_kick_power_->on_activate();
-  pub_kick_flag_->on_activate();
-
-  return CallbackReturn::SUCCESS;
-}
-
-CallbackReturn Conductor::on_deactivate(const rclcpp_lifecycle::State &)
-{
-  RCLCPP_INFO(this->get_logger(), "on_deactivate() is called.");
-
-  pub_target_velocity_->on_deactivate();
-  pub_dribble_power_->on_deactivate();
-  pub_kick_power_->on_deactivate();
-  pub_kick_flag_->on_deactivate();
-
-  return CallbackReturn::SUCCESS;
-}
-
-CallbackReturn Conductor::on_cleanup(const rclcpp_lifecycle::State &)
-{
-  RCLCPP_INFO(this->get_logger(), "on_cleanup() is called.");
-
-  // pub_target_velocity_->reset();
-  pub_dribble_power_.reset();
-  pub_kick_power_.reset();
-  pub_kick_flag_.reset();
-
-  return CallbackReturn::SUCCESS;
-}
-
-CallbackReturn Conductor::on_shutdown(const rclcpp_lifecycle::State &)
-{
-  RCLCPP_INFO(this->get_logger(), "on_shutdown() is called.");
-
-  // pub_target_velocity_->reset();
-  pub_dribble_power_.reset();
-  pub_kick_power_.reset();
-  pub_kick_flag_.reset();
-
-  return CallbackReturn::SUCCESS;
 }
 
 }  // namespace frootspi_conductor

@@ -36,7 +36,7 @@ namespace frootspi_conductor
 
 using RobotCommand = consai_frootspi_msgs::msg::RobotCommand;
 
-class Conductor : public rclcpp_lifecycle::LifecycleNode
+class Conductor : public rclcpp::Node
 {
 public:
   FROOTSPI_CONDUCTOR_PUBLIC
@@ -45,27 +45,11 @@ public:
 private:
   void callback_commands(const RobotCommand::SharedPtr msg);
 
-  rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
-  on_configure(const rclcpp_lifecycle::State &);
-  rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
-  on_activate(const rclcpp_lifecycle::State &);
-  rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
-  on_deactivate(const rclcpp_lifecycle::State &);
-  rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
-  on_cleanup(const rclcpp_lifecycle::State &);
-  rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
-  on_shutdown(const rclcpp_lifecycle::State &);
-
-  std::shared_ptr<rclcpp::Subscription<RobotCommand>>
-  sub_command_;
-  std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<geometry_msgs::msg::Twist>>
-  pub_target_velocity_;
-  std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<frootspi_msgs::msg::DribblePower>>
-  pub_dribble_power_;
-  std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<std_msgs::msg::Float32>>
-  pub_kick_power_;
-  std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<std_msgs::msg::Int16>>
-  pub_kick_flag_;
+  rclcpp::Subscription<RobotCommand>::SharedPtr sub_command_;
+  rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr pub_target_velocity_;
+  rclcpp::Publisher<frootspi_msgs::msg::DribblePower>::SharedPtr pub_dribble_power_;
+  rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr pub_kick_power_;
+  rclcpp::Publisher<std_msgs::msg::Int16>::SharedPtr pub_kick_flag_;
 
   int kick_command_;
 };
