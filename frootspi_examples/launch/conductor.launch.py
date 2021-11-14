@@ -25,7 +25,7 @@ def generate_launch_description():
         'id', default_value='0',
         description=('Set own ID.')
     )
-    push_ns = PushRosNamespace(['robot', LaunchConfiguration('robot_id')])
+    push_ns = PushRosNamespace(['robot', LaunchConfiguration('id')])
 
     # robot_id = LaunchConfiguration('robot_id')
     container = ComposableNodeContainer(
