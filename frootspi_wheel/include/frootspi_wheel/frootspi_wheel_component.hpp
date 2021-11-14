@@ -20,39 +20,24 @@
 #include "frootspi_msgs/msg/wheel_velocities.hpp"
 #include "geometry_msgs/msg/twist.hpp"
 #include "rclcpp/rclcpp.hpp"
-#include "rclcpp_lifecycle/lifecycle_node.hpp"
-#include "rclcpp_lifecycle/lifecycle_publisher.hpp"
 
 #include "frootspi_wheel/visibility_control.h"
 
 namespace frootspi_wheel
 {
 
-class WheelNode : public rclcpp_lifecycle::LifecycleNode
+class WheelNode : public rclcpp::Node
 {
 public:
   FROOTSPI_WHEEL_PUBLIC
   explicit WheelNode(const rclcpp::NodeOptions & options);
 
 private:
-  rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
-  on_configure(const rclcpp_lifecycle::State &);
-  rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
-  on_activate(const rclcpp_lifecycle::State &);
-  rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
-  on_deactivate(const rclcpp_lifecycle::State &);
-  rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
-  on_cleanup(const rclcpp_lifecycle::State &);
-  rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
-  on_shutdown(const rclcpp_lifecycle::State &);
-
   // publishers
-  std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<frootspi_msgs::msg::WheelVelocities>>
-  pub_wheel_velocities_;
+  rclcpp::Publisher<frootspi_msgs::msg::WheelVelocities>::SharedPtr pub_wheel_velocities_;
 
   // subscribers
-  std::shared_ptr<rclcpp::Subscription<geometry_msgs::msg::Twist>>
-  sub_target_velocity_;
+  rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr sub_target_velocity_;
 
   // subscription callbacks
   void callback_target_velocity(const geometry_msgs::msg::Twist::SharedPtr msg);

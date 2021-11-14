@@ -78,18 +78,6 @@ def generate_launch_description():
         output='screen',
     )
 
-    configure_wheel_node = ExecuteProcess(
-        cmd=['ros2 lifecycle set wheel configure'],
-        shell=True,
-        output='screen',
-    )
-
-    activate_wheel_node = ExecuteProcess(
-        cmd=['ros2 lifecycle set wheel activate'],
-        shell=True,
-        output='screen',
-    )
-
     return LaunchDescription([
         start_pigpiod,
         start_socket_can0,
@@ -103,18 +91,6 @@ def generate_launch_description():
             event_handler=OnProcessExit(
                 target_action=configure_hardware_node,
                 on_exit=[activate_hardware_node],
-            )
-        ),
-        RegisterEventHandler(
-            event_handler=OnProcessStart(
-                target_action=container,
-                on_start=[configure_wheel_node],
-            )
-        ),
-        RegisterEventHandler(
-            event_handler=OnProcessExit(
-                target_action=configure_wheel_node,
-                on_exit=[activate_wheel_node],
             )
         ),
         container
