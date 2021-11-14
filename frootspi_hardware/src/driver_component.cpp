@@ -110,6 +110,18 @@ void Driver::on_polling_timer()
   pub_present_wheel_velocities_->publish(std::move(wheel_velocities_msg));
 
   // IMUセンサの情報をパブリッシュ
+
+  // タイヤ目標速度のタイムアウト処理
+  if (steady_clock_.now().seconds() - sub_wheel_timestamp_.seconds() >= 0.5) {
+    // 通信タイムアウト
+    wheel_controller_.set_wheel_velocities(0, 0, 0);
+    if (timeout_has_printed_ == false) {
+      RCLCPP_WARN(this->get_logger(), "通信タイムアウトのため、ホイールの回転速度を0 rad/sにします");
+      timeout_has_printed_ = true;
+    }
+  } else {
+    timeout_has_printed_ = false;
+  }
 }
 
 void Driver::on_discharge_kicker_timer()
@@ -156,6 +168,8 @@ void Driver::callback_wheel_velocities(const frootspi_msgs::msg::WheelVelocities
 {
   wheel_controller_.set_wheel_velocities(
     msg->front_right, msg->front_left, msg->back_center);
+  // 通信タイムアウト処理用に、タイムスタンプを取得する
+  sub_wheel_timestamp_ = steady_clock_.now();
 }
 
 void Driver::on_kick(
@@ -399,6 +413,11 @@ CallbackReturn Driver::on_configure(const rclcpp_lifecycle::State &)
   gpio_write(pi_, GPIO_CENTER_LED, PI_LOW);
   set_mode(pi_, GPIO_RIGHT_LED, PI_OUTPUT);
   gpio_write(pi_, GPIO_RIGHT_LED, PI_LOW);
+
+  // 通信タイムアウト検知用のタイマー
+  steady_clock_ = rclcpp::Clock(RCL_STEADY_TIME);
+  sub_wheel_timestamp_ = steady_clock_.now();
+  timeout_has_printed_ = false;
 
   return CallbackReturn::SUCCESS;
 }
