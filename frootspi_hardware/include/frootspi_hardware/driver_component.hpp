@@ -21,6 +21,7 @@
 
 #include "frootspi_hardware/visibility_control.h"
 #include "frootspi_hardware/io_expander.hpp"
+#include "frootspi_hardware/capacitor_monitor.hpp"
 #include "frootspi_hardware/lcd_driver.hpp"
 #include "frootspi_hardware/battery_monitor.hpp"
 #include "frootspi_hardware/wheel_controller.hpp"
@@ -118,6 +119,7 @@ private:
   IOExpander io_expander_;
   BatteryMonitor battery_monitor_;
   LCDDriver lcd_driver_;
+  CapacitorMonitor capacitor_monitor_;
   bool enable_kicker_charging_;
   int discharge_kick_count_;
   WheelController wheel_controller_;

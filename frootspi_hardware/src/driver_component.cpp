@@ -88,14 +88,8 @@ void Driver::on_polling_timer()
 
   // キッカー（昇圧回路）電圧をパブリッシュ
   auto kicker_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
-  kicker_voltage_msg->voltage = 200.0;  // キッカー電圧 [v]をセット
-  if (gpio_read(pi_, GPIO_KICK_CHARGE_COMPLETE)) {  // 負論理のため
-    kicker_voltage_msg->voltage_status =
-      frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_NEED_CHARGING;
-  } else {
-    kicker_voltage_msg->voltage_status =
-      frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_FULL;
-  }
+  capacitor_monitor_.capacitor_info_read(
+    kicker_voltage_msg->voltage, kicker_voltage_msg->voltage_status);
   pub_kicker_voltage_->publish(std::move(kicker_voltage_msg));
 
   // スイッチ状態をパブリッシュ
@@ -370,6 +364,11 @@ CallbackReturn Driver::on_configure(const rclcpp_lifecycle::State &)
   }
   lcd_driver_.write_texts("FrootsPi", "ﾌﾙｰﾂﾊﾟｲ!");
 
+  if (!capacitor_monitor_.open(pi_)) {
+    RCLCPP_ERROR(this->get_logger(), "Failed to connect Capacitor Monitor.");
+    return CallbackReturn::FAILURE;
+  }
+
   if (!wheel_controller_.device_open()) {
     RCLCPP_ERROR(this->get_logger(), "Failed to connect wheel controller.");
     return CallbackReturn::FAILURE;
@@ -458,6 +457,7 @@ CallbackReturn Driver::on_cleanup(const rclcpp_lifecycle::State &)
   polling_timer_.reset();
 
   io_expander_.close();
+  capacitor_monitor_.close();
   battery_monitor_.close();
   pigpio_stop(pi_);
 
@@ -478,6 +478,7 @@ CallbackReturn Driver::on_shutdown(const rclcpp_lifecycle::State &)
   polling_timer_.reset();
 
   io_expander_.close();
+  capacitor_monitor_.close();
   battery_monitor_.close();
   pigpio_stop(pi_);
 
