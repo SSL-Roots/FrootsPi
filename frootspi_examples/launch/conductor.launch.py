@@ -22,7 +22,7 @@ from launch_ros.descriptions import ComposableNode
 
 def generate_launch_description():
     declare_arg_robot_id = DeclareLaunchArgument(
-        'robot_id', default_value='0',
+        'id', default_value='0',
         description=('Set own ID.')
     )
     push_ns = PushRosNamespace(['robot', LaunchConfiguration('robot_id')])
