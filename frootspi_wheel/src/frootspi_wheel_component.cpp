@@ -28,21 +28,13 @@
 #include "rclcpp/rclcpp.hpp"
 
 using namespace std::chrono_literals;
-using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 
 namespace frootspi_wheel
 {
 
 WheelNode::WheelNode(const rclcpp::NodeOptions & options)
-: rclcpp_lifecycle::LifecycleNode("wheel", options)
+: Node("wheel", options)
 {
-}
-
-
-CallbackReturn WheelNode::on_configure(const rclcpp_lifecycle::State &)
-{
-  RCLCPP_DEBUG(this->get_logger(), "on_configure() is called.");
-
   using namespace std::placeholders;  // for _1, _2, _3...
 
   // init publishers
@@ -52,44 +44,6 @@ CallbackReturn WheelNode::on_configure(const rclcpp_lifecycle::State &)
   // init subscribers
   sub_target_velocity_ = create_subscription<geometry_msgs::msg::Twist>(
     "target_velocity", 1, std::bind(&WheelNode::callback_target_velocity, this, _1));
-
-  std::cout << "Configured!" << std::endl;
-
-  return CallbackReturn::SUCCESS;
-}
-
-CallbackReturn WheelNode::on_activate(const rclcpp_lifecycle::State &)
-{
-  RCLCPP_DEBUG(this->get_logger(), "on_activate() is called.");
-
-  pub_wheel_velocities_->on_activate();
-
-  return CallbackReturn::SUCCESS;
-}
-
-CallbackReturn WheelNode::on_deactivate(const rclcpp_lifecycle::State &)
-{
-  RCLCPP_DEBUG(this->get_logger(), "on_deactivate() is called.");
-
-  pub_wheel_velocities_->on_deactivate();
-
-  return CallbackReturn::SUCCESS;
-}
-
-CallbackReturn WheelNode::on_cleanup(const rclcpp_lifecycle::State &)
-{
-  RCLCPP_DEBUG(this->get_logger(), "on_cleanup() is called.");
-
-  pub_wheel_velocities_.reset();
-  return CallbackReturn::SUCCESS;
-}
-
-CallbackReturn WheelNode::on_shutdown(const rclcpp_lifecycle::State &)
-{
-  RCLCPP_DEBUG(this->get_logger(), "on_shutdown() is called.");
-
-  pub_wheel_velocities_.reset();
-  return CallbackReturn::SUCCESS;
 }
 
 void WheelNode::callback_target_velocity(const geometry_msgs::msg::Twist::SharedPtr msg)
