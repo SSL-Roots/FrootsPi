@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <iostream>
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
@@ -24,7 +25,8 @@ namespace frootspi_conductor
 {
 
 Conductor::Conductor(const rclcpp::NodeOptions & options)
-: Node("frootspi_conductor", options) {
+: Node("frootspi_conductor", options)
+{
   using namespace std::placeholders;  // for _1, _2, _3...
 
   sub_command_ = create_subscription<RobotCommand>(
