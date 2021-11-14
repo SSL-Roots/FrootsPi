@@ -113,6 +113,9 @@ private:
 
   rclcpp::TimerBase::SharedPtr polling_timer_;
   rclcpp::TimerBase::SharedPtr discharge_kicker_timer_;
+  rclcpp::Clock steady_clock_;
+  rclcpp::Time sub_wheel_timestamp_;
+  bool timeout_has_printed_;
 
   int pi_;
   int gpio_ball_sensor_;
