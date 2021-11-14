@@ -13,15 +13,26 @@
 # limitations under the License.
 
 from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument
 from launch.actions import ExecuteProcess
 from launch.actions import RegisterEventHandler
 from launch.event_handlers import OnProcessExit
 from launch.event_handlers import OnProcessStart
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import ComposableNodeContainer
 from launch_ros.descriptions import ComposableNode
 
 
 def generate_launch_description():
+    declare_arg_robot_id = DeclareLaunchArgument(
+        'robot_id', default_value='0',
+        description=('Set own ID.')
+    )
+
+    # robot_id = LaunchConfiguration('robot_id')
+    robot_id = 0
+    namespace_str = 'robot' + str(robot_id)
+    node_name = 'frootspi_conductor'
     container = ComposableNodeContainer(
         name='frootspi_container',
         namespace='',
@@ -31,8 +42,8 @@ def generate_launch_description():
             ComposableNode(
                 package='frootspi_conductor',
                 plugin='frootspi_conductor::Conductor',
-                name='frootspi_conductor',
-                parameters=[{'my_id': 0}],
+                name=node_name,
+                namespace=namespace_str,
                 extra_arguments=[{'use_intra_process_comms': True}],
                 ),
         ],
@@ -40,18 +51,19 @@ def generate_launch_description():
     )
 
     configure_conductor_node = ExecuteProcess(
-        cmd=['ros2 lifecycle set frootspi_conductor configure'],
+        cmd=['ros2 lifecycle set ' + namespace_str + '/' + node_name + ' configure'],
         shell=True,
         output='screen',
     )
 
     activate_conductor_node = ExecuteProcess(
-        cmd=['ros2 lifecycle set frootspi_conductor activate'],
+        cmd=['ros2 lifecycle set ' + namespace_str + '/' + node_name + ' activate'],
         shell=True,
         output='screen',
     )
 
     return LaunchDescription([
+        declare_arg_robot_id,
         RegisterEventHandler(
             event_handler=OnProcessStart(
                 target_action=container,

@@ -17,6 +17,7 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
+find_package(consai_frootspi_msgs REQUIRED)
 find_package(frootspi_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
@@ -30,6 +31,7 @@ add_library(conductor_component SHARED
 target_compile_definitions(conductor_component
   PRIVATE "FROOTSPI_CONDUCTOR_BUILDING_DLL")
 ament_target_dependencies(conductor_component
+  consai_frootspi_msgs
   frootspi_msgs
   rclcpp
   rclcpp_components
@@ -40,6 +42,7 @@ rclcpp_components_register_nodes(conductor_component "frootspi_conductor::Conduc
 
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
 
+ament_export_dependencies(consai_frootspi_msgs)
 ament_export_dependencies(frootspi_msgs)
 ament_export_dependencies(rclcpp)
 ament_export_dependencies(rclcpp_components)
