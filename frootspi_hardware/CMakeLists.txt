@@ -33,6 +33,7 @@ add_library(driver_component SHARED
   src/lcd_driver.cpp
   src/wheel_controller.cpp
   src/capacitor_monitor.cpp
+  src/battery_monitor.cpp
 )
 target_compile_definitions(driver_component
   PRIVATE "FROOTSPI_HARDWARE_BUILDING_DLL")

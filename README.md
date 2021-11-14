@@ -69,6 +69,18 @@ $ ros2 launch frootspi_examples hardware.launch.py
 $ ros2 topic echo /switch_state
 ```
 
+### Joystickを用いた動作確認
+1. 手持ちのJoystickをRaspberryPiに接続します。
+2. `frootspi_examples/launch/joycon.launch.py` の `joy_config` が、手持ちのJoystickに対応したコンフィグに設定されていることを確認します。
+3. 次のコマンドを実行します
+
+    ```sh
+    ros2 launch frootspi_examples joycon.launch.py
+
+    # 別のターミナル
+    ros2 launch frootspi_examples robot.launch.py
+    ```
+
 ## Development
 
 FrootsPiを開発する際にここを読んでください。
