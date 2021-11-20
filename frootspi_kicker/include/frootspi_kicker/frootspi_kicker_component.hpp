@@ -94,7 +94,10 @@ private:
     bool hardware_node_wakeup_;
     int kick_flag_;
     float kick_power_;
-    // bool discharge_enable_from_sw_;
+    bool discharge_request_trigger_;
+    bool discharge_request_status_;
+    bool discharge_request_status_pre_;
+    
 };
 
 }  // namespace frootspi_kicker

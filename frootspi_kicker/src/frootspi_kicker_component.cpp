@@ -83,26 +83,8 @@ void KickerNode::on_polling_timer()
     charge_enable_ = false;
   }
 
-
   // hardwareノードが起動してから、サービスをリクエストする
   if(hardware_node_wakeup_ == true){
-
-    // 充電指示が出ていて電圧が低いとき　再充電が必要なのか状態判定
-    if((capacitor_voltage_ < 190)&&(charge_enable_ == true)){
-      charge_restart_status_ = true;
-    } else {
-      charge_restart_status_ = false;
-    }
-
-    //再充電の状態判定よりトリガ生成
-    if((charge_restart_status_ == true)&&(charge_restart_status_pre_ == false)){
-      charge_restart_trigger_ = true;
-    } else {
-      charge_restart_trigger_ = false;
-    }
-
-    charge_restart_status_pre_ = charge_restart_status_;
-
     // キック要求判定
     if((kick_flag_ != 0)&&(kick_power_ > 0)){
       // キック可否判定 (ボールがあって、電圧が190V以上で、前回のキックは正常に行われている) 
@@ -129,6 +111,53 @@ void KickerNode::on_polling_timer()
       }
     }
 
+    // 放電要求判定
+    if((discharge_request_status_ == true)&&(discharge_request_status_pre_ == false)){
+      discharge_request_trigger_ = true;
+    } else {
+      discharge_request_trigger_ = false;
+    }
+    discharge_request_status_pre_ = discharge_request_status_;
+
+    if(((kick_flag_ == 3)||(discharge_request_trigger_ == true))
+      &&(charge_enable_from_conductor_ == false)
+      &&(charge_enable_from_dipsw_ == false)){
+        // kick request
+        RCLCPP_DEBUG(this->get_logger(), "kicker discharge drive.");
+        auto discharge_request = std::make_shared<frootspi_msgs::srv::Kick::Request>();
+
+        discharge_request->kick_type = 3;
+        discharge_request->kick_power = 0;
+        
+        is_kicking_ = true;
+        while (!clnt_kick_->wait_for_service(std::chrono::seconds(1)) && rclcpp::ok()){
+          RCLCPP_INFO(this->get_logger(), "waiting for set kick service to apper...");
+        }
+
+        auto discharge_result = clnt_kick_->async_send_request(discharge_request, 
+          std::bind(&KickerNode::callback_res_kick,this,std::placeholders::_1));
+        is_kicking_ = false;
+        is_release_ = true;
+        kick_flag_ = 0;
+        kick_power_ = 0;
+    }
+
+    // 充電要求判定
+    // 充電指示が出ていて電圧が低いとき　再充電が必要なのか状態判定
+    if((capacitor_voltage_ < 190)&&(charge_enable_ == true)){
+      charge_restart_status_ = true;
+    } else {
+      charge_restart_status_ = false;
+    }
+
+    //再充電の状態判定よりトリガ生成
+    if((charge_restart_status_ == true)&&(charge_restart_status_pre_ == false)){
+      charge_restart_trigger_ = true;
+    } else {
+      charge_restart_trigger_ = false;
+    }
+
+    charge_restart_status_pre_ = charge_restart_status_;
     // charge request
     auto charge_request = std::make_shared<frootspi_msgs::srv::SetKickerCharging::Request>();
     if(charge_restart_trigger_ == true){
@@ -188,10 +217,11 @@ void KickerNode::callback_switch_state(const frootspi_msgs::msg::SwitchesState::
   }
 
   // SWによる放電指示を確認
-  // if(msg->pushed_button0 == true){
-  //   // 放電は直接サービス呼んでもいいかも
-  //   discharge_enable_from_sw_ = true;
-  // }
+  if(msg->pushed_button0 == true){
+    discharge_request_status_ = true;
+  } else{
+    discharge_request_status_ = false;
+  }
 
 }
 
@@ -203,13 +233,13 @@ void KickerNode::callback_kicker_voltage(const frootspi_msgs::msg::BatteryVoltag
 
 void KickerNode::callback_kick_flag(const std_msgs::msg::Int16::SharedPtr msg)
 {
-  RCLCPP_INFO(this->get_logger(), "kicer flag received.");
+  RCLCPP_DEBUG(this->get_logger(), "kicer flag received.");
   kick_flag_ = msg->data;
 }
 
 void KickerNode::callback_kick_power(const std_msgs::msg::Float32::SharedPtr msg)
 {
-  RCLCPP_INFO(this->get_logger(), "kicer power received.");
+  RCLCPP_DEBUG(this->get_logger(), "kicer power received.");
   kick_power_ = msg->data;
 }
 
