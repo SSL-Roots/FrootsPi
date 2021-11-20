@@ -36,7 +36,7 @@ ament_target_dependencies(frootspi_kicker_component
   rclcpp_components
   rclcpp_lifecycle
 )
-rclcpp_components_register_nodes(frootspi_kicker_component "frootspi_kicker::Driver")
+rclcpp_components_register_nodes(frootspi_kicker_component "frootspi_kicker::KickerNode")
 
 add_executable(frootspi_kicker_node src/main.cpp)
 target_link_libraries(frootspi_kicker_node frootspi_kicker_component)
