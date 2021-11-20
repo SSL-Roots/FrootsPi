@@ -33,6 +33,7 @@ ament_target_dependencies(frootspi_kicker_component
   frootspi_msgs
   rclcpp
   rclcpp_components
+  std_srvs
 )
 rclcpp_components_register_nodes(frootspi_kicker_component "frootspi_kicker::KickerNode")
 
@@ -46,6 +47,7 @@ ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
 ament_export_dependencies(frootspi_msgs)
 ament_export_dependencies(rclcpp)
 ament_export_dependencies(rclcpp_components)
+ament_export_dependencies(std_srvs)
 
 ament_export_include_directories(include)
 ament_export_libraries(frootspi_kicker_component)

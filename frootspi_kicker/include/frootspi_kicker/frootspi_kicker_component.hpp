@@ -19,6 +19,16 @@
 
 
 #include "frootspi_kicker/visibility_control.h"
+// Kickerノードの入力
+#include "std_msgs/msg/float32.hpp"
+#include "std_msgs/msg/int16.hpp"
+#include "frootspi_msgs/msg/battery_voltage.hpp"
+#include "frootspi_msgs/msg/ball_detection.hpp"
+
+// Kickerノードの出力
+#include "frootspi_msgs/srv/kick.hpp"
+#include "frootspi_msgs/srv/set_kicker_charging.hpp"
+#include "std_srvs/srv/set_bool.hpp"
 
 namespace frootspi_kicker
 {
@@ -30,7 +40,22 @@ public:
     explicit KickerNode(const rclcpp::NodeOptions & options);
 
 private:
+    // publishers
 
+    // subscribers
+    rclcpp::Subscription<frootspi_msgs::msg::BallDetection>::SharedPtr sub_ball_detection_;
+
+    // clients
+    rclcpp::Client<std_srvs::srv::SetBool>::SharedPtr clnt_ball_detection_led_;
+
+    // subscription callbacks
+    void callback_ball_detection(const frootspi_msgs::msg::BallDetection::SharedPtr msg);
+
+    // client callbacks
+    void callback_res_ball_led(rclcpp::Client<std_srvs::srv::SetBool>::SharedFuture future);
+
+    // variable
+    bool ball_detection_;
 
 };
 
