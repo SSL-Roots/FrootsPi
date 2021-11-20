@@ -46,16 +46,19 @@ private:
     // subscribers
     rclcpp::Subscription<frootspi_msgs::msg::BallDetection>::SharedPtr sub_ball_detection_;
     rclcpp::Subscription<frootspi_msgs::msg::SwitchesState>::SharedPtr sub_switch_state_;
+    rclcpp::Subscription<frootspi_msgs::msg::BatteryVoltage>::SharedPtr sub_kicker_voltage_;
 
     // servers
     std::shared_ptr<rclcpp::Service<std_srvs::srv::SetBool>> srv_capacitor_charge_request_;
 
     // clients
     rclcpp::Client<std_srvs::srv::SetBool>::SharedPtr clnt_ball_detection_led_;
+    rclcpp::Client<frootspi_msgs::srv::SetKickerCharging>::SharedPtr clnt_set_kicker_charging_;
 
     // subscription callbacks
     void callback_ball_detection(const frootspi_msgs::msg::BallDetection::SharedPtr msg);
     void callback_switch_state(const frootspi_msgs::msg::SwitchesState::SharedPtr msg);
+    void callback_kicker_voltage(const frootspi_msgs::msg::BatteryVoltage::SharedPtr msg);
 
     // servers callbacks
     void on_capacitor_charge_request(
@@ -64,11 +67,24 @@ private:
 
     // client callbacks
     void callback_res_ball_led(rclcpp::Client<std_srvs::srv::SetBool>::SharedFuture future);
+    void callback_res_set_kicker_charging(rclcpp::Client<frootspi_msgs::srv::SetKickerCharging>::SharedFuture future);
+
+    void on_polling_timer();
+
+    // timer
+    rclcpp::TimerBase::SharedPtr polling_timer_;
 
     // variable
     bool ball_detection_;
     bool charge_enable_from_dipsw_;
     bool charge_enable_from_conductor_;
+    bool charge_enable_;
+    bool charge_restart_trigger_;
+    bool charge_restart_status_;
+    bool charge_restart_status_pre_;
+    bool is_kicking_;
+    float capacitor_voltage_;
+    bool hardware_node_wakeup_;
     // bool discharge_enable_from_sw_;
 };
 
