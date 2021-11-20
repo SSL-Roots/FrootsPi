@@ -16,31 +16,22 @@
 #define FROOTSPI_KICKER__FROOTSPI_KICKER_COMPONENT_HPP_
 
 #include "rclcpp/rclcpp.hpp"
-#include "rclcpp_lifecycle/lifecycle_node.hpp"
-#include "rclcpp_lifecycle/lifecycle_publisher.hpp"
+
 
 #include "frootspi_kicker/visibility_control.h"
 
 namespace frootspi_kicker
 {
 
-class KickerNode : public rclcpp_lifecycle::LifecycleNode
+class KickerNode : public rclcpp::Node
 {
 public:
     FROOTSPI_KICKER_PUBLIC
     explicit KickerNode(const rclcpp::NodeOptions & options);
 
 private:
-  rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
-  on_configure(const rclcpp_lifecycle::State &);
-  rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
-  on_activate(const rclcpp_lifecycle::State &);
-  rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
-  on_deactivate(const rclcpp_lifecycle::State &);
-  rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
-  on_cleanup(const rclcpp_lifecycle::State &);
-  rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
-  on_shutdown(const rclcpp_lifecycle::State &);
+
+
 };
 
 }  // namespace frootspi_kicker

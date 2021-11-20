@@ -23,46 +23,20 @@
 #include <vector>
 
 #include "frootspi_kicker/frootspi_kicker_component.hpp"
-#include "lifecycle_msgs/srv/change_state.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/int16.hpp"
 
 using namespace std::chrono_literals;
-using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 
 namespace frootspi_kicker
 {
 
 KickerNode::KickerNode(const rclcpp::NodeOptions & options)
-: rclcpp_lifecycle::LifecycleNode("kicker", options)
+: Node("kicker", options)
 {
 }
 
 
-CallbackReturn KickerNode::on_configure(const rclcpp_lifecycle::State &)
-{
-  return CallbackReturn::SUCCESS;
-}
-
-CallbackReturn KickerNode::on_activate(const rclcpp_lifecycle::State &)
-{
-  return CallbackReturn::SUCCESS;
-}
-
-CallbackReturn KickerNode::on_deactivate(const rclcpp_lifecycle::State &)
-{
-  return CallbackReturn::SUCCESS;
-}
-
-CallbackReturn KickerNode::on_cleanup(const rclcpp_lifecycle::State &)
-{
-  return CallbackReturn::SUCCESS;
-}
-
-CallbackReturn KickerNode::on_shutdown(const rclcpp_lifecycle::State &)
-{
-  return CallbackReturn::SUCCESS;
-}
 
 }  // namespace frootspi_kicker
 
