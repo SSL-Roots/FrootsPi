@@ -41,12 +41,14 @@ KickerNode::KickerNode(const rclcpp::NodeOptions & options)
   // init subscribers
   sub_ball_detection_ = create_subscription<frootspi_msgs::msg::BallDetection>(
     "ball_detection", 1, std::bind(&KickerNode::callback_ball_detection, this, _1));
-
   sub_switch_state_ = create_subscription<frootspi_msgs::msg::SwitchesState>(
     "switches_state", 1, std::bind(&KickerNode::callback_switch_state, this, _1));
-
   sub_kicker_voltage_ = create_subscription<frootspi_msgs::msg::BatteryVoltage>(
     "kicker_voltage", 1, std::bind(&KickerNode::callback_kicker_voltage, this, _1));
+  sub_kick_flag_ = create_subscription<std_msgs::msg::Int16>(
+    "kick_flag", 1, std::bind(&KickerNode::callback_kick_flag, this, _1));
+  sub_kick_power_ = create_subscription<std_msgs::msg::Float32>(
+    "kick_power", 1, std::bind(&KickerNode::callback_kick_power, this, _1));
 
   // init servers
   srv_capacitor_charge_request_ = create_service<std_srvs::srv::SetBool>(
@@ -57,13 +59,15 @@ KickerNode::KickerNode(const rclcpp::NodeOptions & options)
   clnt_set_kicker_charging_ = create_client<frootspi_msgs::srv::SetKickerCharging>("set_kicker_charging");
 
   // init timer
-  polling_timer_ = create_wall_timer(100ms, std::bind(&KickerNode::on_polling_timer, this));
+  polling_timer_ = create_wall_timer(10ms, std::bind(&KickerNode::on_polling_timer, this));
 
   // init param
   hardware_node_wakeup_ = false; 
   charge_restart_status_ = false;
   charge_restart_status_pre_ = false;
   is_kicking_ = false;
+  kick_flag_ = 0;
+  kick_power_ = 0;
 }
 
 void KickerNode::on_polling_timer()
@@ -146,6 +150,7 @@ void KickerNode::callback_switch_state(const frootspi_msgs::msg::SwitchesState::
   hardware_node_wakeup_ = true;
 
   // DipSWによる充電指示を確認
+  // これトリガーにしたほうがいいかも　今の処理だと放電SWとの相性が悪い
   if(msg->turned_on_dip0 == true ){
     charge_enable_from_dipsw_ = true;
   } else{
@@ -165,6 +170,19 @@ void KickerNode::callback_kicker_voltage(const frootspi_msgs::msg::BatteryVoltag
   RCLCPP_DEBUG(this->get_logger(), "kicer voltage received.");
   capacitor_voltage_ = msg->voltage;
 }
+
+void KickerNode::callback_kick_flag(const std_msgs::msg::Int16::SharedPtr msg)
+{
+  RCLCPP_DEBUG(this->get_logger(), "kicer flag received.");
+  kick_flag_ = msg->data;
+}
+
+void KickerNode::callback_kick_power(const std_msgs::msg::Float32::SharedPtr msg)
+{
+  RCLCPP_DEBUG(this->get_logger(), "kicer power received.");
+  kick_power_ = msg->data;
+}
+
 
 void KickerNode::on_capacitor_charge_request(
   const std_srvs::srv::SetBool::Request::SharedPtr request,

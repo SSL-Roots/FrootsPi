@@ -47,6 +47,8 @@ private:
     rclcpp::Subscription<frootspi_msgs::msg::BallDetection>::SharedPtr sub_ball_detection_;
     rclcpp::Subscription<frootspi_msgs::msg::SwitchesState>::SharedPtr sub_switch_state_;
     rclcpp::Subscription<frootspi_msgs::msg::BatteryVoltage>::SharedPtr sub_kicker_voltage_;
+    rclcpp::Subscription<std_msgs::msg::Int16>::SharedPtr sub_kick_flag_;
+    rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr sub_kick_power_;
 
     // servers
     std::shared_ptr<rclcpp::Service<std_srvs::srv::SetBool>> srv_capacitor_charge_request_;
@@ -59,6 +61,8 @@ private:
     void callback_ball_detection(const frootspi_msgs::msg::BallDetection::SharedPtr msg);
     void callback_switch_state(const frootspi_msgs::msg::SwitchesState::SharedPtr msg);
     void callback_kicker_voltage(const frootspi_msgs::msg::BatteryVoltage::SharedPtr msg);
+    void callback_kick_flag(const std_msgs::msg::Int16::SharedPtr msg);
+    void callback_kick_power(const std_msgs::msg::Float32::SharedPtr msg);
 
     // servers callbacks
     void on_capacitor_charge_request(
@@ -85,6 +89,8 @@ private:
     bool is_kicking_;
     float capacitor_voltage_;
     bool hardware_node_wakeup_;
+    int kick_flag_;
+    float kick_power_;
     // bool discharge_enable_from_sw_;
 };
 
