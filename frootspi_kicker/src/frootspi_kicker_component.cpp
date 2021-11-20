@@ -57,15 +57,18 @@ KickerNode::KickerNode(const rclcpp::NodeOptions & options)
   // init clients
   clnt_ball_detection_led_ = create_client<std_srvs::srv::SetBool>("set_center_led");
   clnt_set_kicker_charging_ = create_client<frootspi_msgs::srv::SetKickerCharging>("set_kicker_charging");
+  clnt_kick_ =  create_client<frootspi_msgs::srv::Kick>("kick");
 
   // init timer
   polling_timer_ = create_wall_timer(10ms, std::bind(&KickerNode::on_polling_timer, this));
 
   // init param
+  ball_detection_ = false;
   hardware_node_wakeup_ = false; 
   charge_restart_status_ = false;
   charge_restart_status_pre_ = false;
   is_kicking_ = false;
+  is_release_ = false;
   kick_flag_ = 0;
   kick_power_ = 0;
 }
@@ -100,18 +103,44 @@ void KickerNode::on_polling_timer()
 
     charge_restart_status_pre_ = charge_restart_status_;
 
-    // service request
-    auto request = std::make_shared<frootspi_msgs::srv::SetKickerCharging::Request>();
+    // キック要求判定
+    if((kick_flag_ != 0)&&(kick_power_ > 0)){
+      // キック可否判定 (ボールがあって、電圧が190V以上で、前回のキックは正常に行われている) 
+      RCLCPP_DEBUG(this->get_logger(), "kicer request.");
+      if((ball_detection_ == true)&&(capacitor_voltage_ >= 190)&&(is_release_ == false)){
+        // kick request
+        RCLCPP_DEBUG(this->get_logger(), "kicer drive.");
+        auto kick_request = std::make_shared<frootspi_msgs::srv::Kick::Request>();
+
+        kick_request->kick_type = kick_flag_;
+        kick_request->kick_power = kick_power_;
+        
+        is_kicking_ = true;
+        while (!clnt_kick_->wait_for_service(std::chrono::seconds(1)) && rclcpp::ok()){
+          RCLCPP_INFO(this->get_logger(), "waiting for set kick service to apper...");
+        }
+
+        auto kick_result = clnt_kick_->async_send_request(kick_request, 
+          std::bind(&KickerNode::callback_res_kick,this,std::placeholders::_1));
+        is_kicking_ = false;
+        is_release_ = true;
+        kick_flag_ = 0;
+        kick_power_ = 0;
+      }
+    }
+
+    // charge request
+    auto charge_request = std::make_shared<frootspi_msgs::srv::SetKickerCharging::Request>();
     if(charge_restart_trigger_ == true){
       charge_enable_ = false;
     }
-    request->start_charging = charge_enable_;
+    charge_request->start_charging = charge_enable_;
     
     while (!clnt_set_kicker_charging_->wait_for_service(std::chrono::seconds(1)) && rclcpp::ok()){
       RCLCPP_INFO(this->get_logger(), "waiting for set kicker charging service to apper...");
     }
 
-    auto result = clnt_set_kicker_charging_->async_send_request(request, 
+    auto charge_result = clnt_set_kicker_charging_->async_send_request(charge_request, 
       std::bind(&KickerNode::callback_res_set_kicker_charging,this,std::placeholders::_1));
   }
 
@@ -127,6 +156,7 @@ void KickerNode::callback_ball_detection(const frootspi_msgs::msg::BallDetection
     ball_detection_ = true;
   } else {
     ball_detection_ = false;
+    is_release_ = false;
   }
 
   // service request
@@ -173,13 +203,13 @@ void KickerNode::callback_kicker_voltage(const frootspi_msgs::msg::BatteryVoltag
 
 void KickerNode::callback_kick_flag(const std_msgs::msg::Int16::SharedPtr msg)
 {
-  RCLCPP_DEBUG(this->get_logger(), "kicer flag received.");
+  RCLCPP_INFO(this->get_logger(), "kicer flag received.");
   kick_flag_ = msg->data;
 }
 
 void KickerNode::callback_kick_power(const std_msgs::msg::Float32::SharedPtr msg)
 {
-  RCLCPP_DEBUG(this->get_logger(), "kicer power received.");
+  RCLCPP_INFO(this->get_logger(), "kicer power received.");
   kick_power_ = msg->data;
 }
 
@@ -208,6 +238,12 @@ void KickerNode::callback_res_set_kicker_charging(rclcpp::Client<frootspi_msgs::
 {
   RCLCPP_DEBUG(this->get_logger(), future.get()->message);
 }
+
+void KickerNode::callback_res_kick(rclcpp::Client<frootspi_msgs::srv::Kick>::SharedFuture future)
+{
+  RCLCPP_DEBUG(this->get_logger(), future.get()->message);
+}
+
 
 
 }  // namespace frootspi_kicker

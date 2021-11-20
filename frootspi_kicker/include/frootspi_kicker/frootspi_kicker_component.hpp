@@ -56,6 +56,7 @@ private:
     // clients
     rclcpp::Client<std_srvs::srv::SetBool>::SharedPtr clnt_ball_detection_led_;
     rclcpp::Client<frootspi_msgs::srv::SetKickerCharging>::SharedPtr clnt_set_kicker_charging_;
+    rclcpp::Client<frootspi_msgs::srv::Kick>::SharedPtr clnt_kick_;
 
     // subscription callbacks
     void callback_ball_detection(const frootspi_msgs::msg::BallDetection::SharedPtr msg);
@@ -72,6 +73,7 @@ private:
     // client callbacks
     void callback_res_ball_led(rclcpp::Client<std_srvs::srv::SetBool>::SharedFuture future);
     void callback_res_set_kicker_charging(rclcpp::Client<frootspi_msgs::srv::SetKickerCharging>::SharedFuture future);
+    void callback_res_kick(rclcpp::Client<frootspi_msgs::srv::Kick>::SharedFuture future);
 
     void on_polling_timer();
 
@@ -87,6 +89,7 @@ private:
     bool charge_restart_status_;
     bool charge_restart_status_pre_;
     bool is_kicking_;
+    bool is_release_;
     float capacitor_voltage_;
     bool hardware_node_wakeup_;
     int kick_flag_;
