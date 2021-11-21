@@ -59,6 +59,7 @@ KickerNode::KickerNode(const rclcpp::NodeOptions & options)
 
   // init param
   ball_detection_ = false;
+  ball_detection_pre_ = false;
   charge_restart_status_ = false;
   charge_restart_status_pre_ = false;
   is_kicking_ = false;
@@ -132,12 +133,15 @@ void KickerNode::callback_ball_detection(const frootspi_msgs::msg::BallDetection
   }
 
   // service request
-  if(clnt_ball_detection_led_->wait_for_service(std::chrono::seconds(1))){
-    auto request = std::make_shared<std_srvs::srv::SetBool::Request>();
-    request->data = ball_detection_;
+  if(ball_detection_ != ball_detection_pre_){
+    if(clnt_ball_detection_led_->wait_for_service(std::chrono::seconds(1))){
+      auto request = std::make_shared<std_srvs::srv::SetBool::Request>();
+      request->data = ball_detection_;
 
-    auto result = clnt_ball_detection_led_->async_send_request(request);
+      auto result = clnt_ball_detection_led_->async_send_request(request);
+    }
   }
+  ball_detection_pre_ = ball_detection_;
 }
 
 void KickerNode::callback_switch_state(const frootspi_msgs::msg::SwitchesState::SharedPtr msg)
@@ -160,7 +164,8 @@ void KickerNode::callback_switch_state(const frootspi_msgs::msg::SwitchesState::
   // 放電要求判定
   if ((switches_state_.pushed_button0 == true) &&
       (charge_enable_from_conductor_ == false) &&
-      (switches_state_.turned_on_dip0 == false))
+      (switches_state_.turned_on_dip0 == false)&&
+      (is_kicking_ == false))
   {
     set_kick(3, 0);
   }
@@ -176,14 +181,18 @@ void KickerNode::callback_kick_command(const frootspi_msgs::msg::KickCommand::Sh
 {
   // キック可否判定 (ボールがあって、電圧が190V以上で、前回のキックは正常に行われている)
   RCLCPP_INFO(this->get_logger(), "kicer request.");
-  if ((ball_detection_ == true) && (capacitor_voltage_ >= 190) && (is_release_ == false)) {
+  if ((ball_detection_ == true) && 
+      (capacitor_voltage_ >= 190) && 
+      (is_release_ == false) &&
+      (is_kicking_ == false)) {
     set_kick(msg->kick_type, msg->kick_power);
   }
 
   // 放電要求判定
   if ((msg->kick_type == 3) &&
       (charge_enable_from_conductor_ == false) &&
-      (switches_state_.turned_on_dip0 == false))
+      (switches_state_.turned_on_dip0 == false)&&
+      (is_kicking_ == false))
   {
     set_kick(msg->kick_type, msg->kick_power);
   }

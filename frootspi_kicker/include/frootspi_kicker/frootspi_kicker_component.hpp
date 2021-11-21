@@ -73,6 +73,7 @@ private:
 
   // variable
   bool ball_detection_;
+  bool ball_detection_pre_;
   bool charge_enable_from_conductor_;
   bool charge_restart_trigger_;
   bool charge_restart_status_;
