@@ -59,7 +59,7 @@ Driver::Driver(const rclcpp::NodeOptions & options)
 Driver::~Driver()
 {
   gpio_write(pi_, GPIO_DRIBBLE_PWM, PI_HIGH);  // 負論理のためHighでモータオフ
-  lcd_driver_.write_texts("ROS 2", "SHUTDOWN");
+  // lcd_driver_.write_texts("ROS 2", "SHUTDOWN");
   gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_LOW);
   gpio_write(pi_, GPIO_KICK_SUPPLY_POWER, PI_LOW);
   pigpio_stop(pi_);
@@ -253,18 +253,18 @@ void Driver::on_set_kicker_charging(
   }
 }
 
-void Driver::on_set_lcd_text(
-  const frootspi_msgs::srv::SetLCDText::Request::SharedPtr request,
-  frootspi_msgs::srv::SetLCDText::Response::SharedPtr response)
-{
-  if (lcd_driver_.write_texts(request->text1, request->text2)) {
-    response->success = true;
-    response->message = "LCDに " + request->text1 + ", " + request->text2 + " をセットしました";
-  } else {
-    response->success = false;
-    response->message = "LCDに文字列をセットできませんでした。";
-  }
-}
+// void Driver::on_set_lcd_text(
+//   const frootspi_msgs::srv::SetLCDText::Request::SharedPtr request,
+//   frootspi_msgs::srv::SetLCDText::Response::SharedPtr response)
+// {
+//   if (lcd_driver_.write_texts(request->text1, request->text2)) {
+//     response->success = true;
+//     response->message = "LCDに " + request->text1 + ", " + request->text2 + " をセットしました";
+//   } else {
+//     response->success = false;
+//     response->message = "LCDに文字列をセットできませんでした。";
+//   }
+// }
 
 void Driver::on_set_left_led(
   const std_srvs::srv::SetBool::Request::SharedPtr request,
@@ -337,8 +337,8 @@ CallbackReturn Driver::on_configure(const rclcpp_lifecycle::State &)
     create_service<frootspi_msgs::srv::Kick>("kick", std::bind(&Driver::on_kick, this, _1, _2));
   srv_set_kicker_charging_ = create_service<frootspi_msgs::srv::SetKickerCharging>(
     "set_kicker_charging", std::bind(&Driver::on_set_kicker_charging, this, _1, _2));
-  srv_set_lcd_text_ = create_service<frootspi_msgs::srv::SetLCDText>(
-    "set_lcd_text", std::bind(&Driver::on_set_lcd_text, this, _1, _2));
+  // srv_set_lcd_text_ = create_service<frootspi_msgs::srv::SetLCDText>(
+  //   "set_lcd_text", std::bind(&Driver::on_set_lcd_text, this, _1, _2));
   srv_set_left_led_ = create_service<std_srvs::srv::SetBool>(
     "set_left_led", std::bind(&Driver::on_set_left_led, this, _1, _2));
   srv_set_center_led_ = create_service<std_srvs::srv::SetBool>(
@@ -372,11 +372,11 @@ CallbackReturn Driver::on_configure(const rclcpp_lifecycle::State &)
     return CallbackReturn::FAILURE;
   }
 
-  if (!lcd_driver_.open(pi_)) {
-    RCLCPP_ERROR(this->get_logger(), "Failed to connect LCD Driver.");
-    return CallbackReturn::FAILURE;
-  }
-  lcd_driver_.write_texts("FrootsPi", "ﾌﾙｰﾂﾊﾟｲ!");
+  // if (!lcd_driver_.open(pi_)) {
+  //   RCLCPP_ERROR(this->get_logger(), "Failed to connect LCD Driver.");
+  //   return CallbackReturn::FAILURE;
+  // }
+  // lcd_driver_.write_texts("FrootsPi", "ﾌﾙｰﾂﾊﾟｲ!");
 
   if (!capacitor_monitor_.open(pi_)) {
     RCLCPP_ERROR(this->get_logger(), "Failed to connect Capacitor Monitor.");
