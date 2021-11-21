@@ -73,6 +73,7 @@ private:
   void callback_res_kick(rclcpp::Client<frootspi_msgs::srv::Kick>::SharedFuture future);
 
   void on_polling_timer();
+  void set_kick(int set_kick_type_, float set_kick_power);
 
   // timer
   rclcpp::TimerBase::SharedPtr polling_timer_;
