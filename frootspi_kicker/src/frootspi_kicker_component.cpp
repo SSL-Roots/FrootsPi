@@ -39,15 +39,15 @@ KickerNode::KickerNode(const rclcpp::NodeOptions & options)
 
   // init subscribers
   sub_ball_detection_ = create_subscription<frootspi_msgs::msg::BallDetection>(
-    "ball_detection", 1, std::bind(&KickerNode::callback_ball_detection, this, _1));
+    "ball_detection", 10, std::bind(&KickerNode::callback_ball_detection, this, _1));
   sub_switch_state_ = create_subscription<frootspi_msgs::msg::SwitchesState>(
-    "switches_state", 1, std::bind(&KickerNode::callback_switch_state, this, _1));
+    "switches_state", 10, std::bind(&KickerNode::callback_switch_state, this, _1));
   sub_kicker_voltage_ = create_subscription<frootspi_msgs::msg::BatteryVoltage>(
-    "kicker_voltage", 1, std::bind(&KickerNode::callback_kicker_voltage, this, _1));
+    "kicker_voltage", 10, std::bind(&KickerNode::callback_kicker_voltage, this, _1));
   sub_kick_flag_ = create_subscription<std_msgs::msg::Int16>(
-    "kick_flag", 1, std::bind(&KickerNode::callback_kick_flag, this, _1));
+    "kick_flag", 10, std::bind(&KickerNode::callback_kick_flag, this, _1));
   sub_kick_power_ = create_subscription<std_msgs::msg::Float32>(
-    "kick_power", 1, std::bind(&KickerNode::callback_kick_power, this, _1));
+    "kick_power", 10, std::bind(&KickerNode::callback_kick_power, this, _1));
 
   // init servers
   srv_capacitor_charge_request_ = create_service<std_srvs::srv::SetBool>(
