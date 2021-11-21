@@ -30,12 +30,11 @@ Conductor::Conductor(const rclcpp::NodeOptions & options)
   using namespace std::placeholders;  // for _1, _2, _3...
 
   sub_command_ = create_subscription<RobotCommand>(
-    "command", 1, std::bind(&Conductor::callback_commands, this, _1));
+    "command", 10, std::bind(&Conductor::callback_commands, this, _1));
 
-  pub_target_velocity_ = create_publisher<geometry_msgs::msg::Twist>("target_velocity", 1);
-  pub_dribble_power_ = create_publisher<frootspi_msgs::msg::DribblePower>("dribble_power", 1);
-  pub_kick_power_ = create_publisher<std_msgs::msg::Float32>("kick_power", 1);
-  pub_kick_flag_ = create_publisher<std_msgs::msg::Int16>("kick_flag", 1);
+  pub_target_velocity_ = create_publisher<geometry_msgs::msg::Twist>("target_velocity", 10);
+  pub_dribble_power_ = create_publisher<frootspi_msgs::msg::DribblePower>("dribble_power", 10);
+  pub_kick_command_ = create_publisher<frootspi_msgs::msg::KickCommand>("kick_command", 10);
 }
 
 void Conductor::callback_commands(const RobotCommand::SharedPtr msg)
@@ -48,22 +47,18 @@ void Conductor::callback_commands(const RobotCommand::SharedPtr msg)
   target_velocity->angular.z = msg->velocity_theta;
   pub_target_velocity_->publish(std::move(target_velocity));
 
-  // キックパワーが0より大きいとき、kick_powerとkick_flagをpublishする
+  // キックパワーが0より大きいとき、kick_commandをpublishする
   if (msg->kick_power > 0.0) {
-    auto kick_power = std::make_unique<std_msgs::msg::Float32>();
-    kick_power->data = msg->kick_power;
-    pub_kick_power_->publish(std::move(kick_power));
+    auto kick_command = std::make_unique<frootspi_msgs::msg::KickCommand>();
+    kick_command->kick_power = msg->kick_power;
 
-    // キックフラグ
-    auto kick_flag = std::make_unique<std_msgs::msg::Int16>();
-    // 現状はチップキックかどうかだけ実装
     // 0: 未定, 1: ストレート, 2: チップ, 3: 放電
     if (msg->chip_kick) {
-      kick_flag->data = 2;
+      kick_command->kick_type = frootspi_msgs::msg::KickCommand::KICK_TYPE_CHIP;
     } else {
-      kick_flag->data = 1;
+      kick_command->kick_type = frootspi_msgs::msg::KickCommand::KICK_TYPE_STRAIGHT;
     }
-    pub_kick_flag_->publish(std::move(kick_flag));
+    pub_kick_command_->publish(std::move(kick_command));
   }
 
   // ドリブルパワー
