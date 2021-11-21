@@ -44,10 +44,8 @@ KickerNode::KickerNode(const rclcpp::NodeOptions & options)
     "switches_state", 10, std::bind(&KickerNode::callback_switch_state, this, _1));
   sub_kicker_voltage_ = create_subscription<frootspi_msgs::msg::BatteryVoltage>(
     "kicker_voltage", 10, std::bind(&KickerNode::callback_kicker_voltage, this, _1));
-  sub_kick_flag_ = create_subscription<std_msgs::msg::Int16>(
-    "kick_flag", 10, std::bind(&KickerNode::callback_kick_flag, this, _1));
-  sub_kick_power_ = create_subscription<std_msgs::msg::Float32>(
-    "kick_power", 10, std::bind(&KickerNode::callback_kick_power, this, _1));
+  sub_kick_command_ = create_subscription<frootspi_msgs::msg::KickCommand>(
+    "kick_command", 10, std::bind(&KickerNode::callback_kick_command, this, _1));
 
   // init servers
   srv_capacitor_charge_request_ = create_service<std_srvs::srv::SetBool>(
@@ -59,45 +57,12 @@ KickerNode::KickerNode(const rclcpp::NodeOptions & options)
     "set_kicker_charging");
   clnt_kick_ = create_client<frootspi_msgs::srv::Kick>("kick");
 
-  // init timer
-  polling_timer_ = create_wall_timer(10ms, std::bind(&KickerNode::on_polling_timer, this));
-
   // init param
   ball_detection_ = false;
-  hardware_node_wakeup_ = false;
   charge_restart_status_ = false;
   charge_restart_status_pre_ = false;
   is_kicking_ = false;
   is_release_ = false;
-  kick_flag_ = 0;
-  kick_power_ = 0;
-}
-
-void KickerNode::on_polling_timer()
-{
-  // hardwareノードが起動してから、サービスをリクエストする
-  // if (hardware_node_wakeup_ == true) {
-    // キック要求判定
-    if ((kick_flag_ != 0) && (kick_power_ > 0)) {
-      // キック可否判定 (ボールがあって、電圧が190V以上で、前回のキックは正常に行われている)
-      RCLCPP_DEBUG(this->get_logger(), "kicer request.");
-      if ((ball_detection_ == true) && (capacitor_voltage_ >= 190) && (is_release_ == false)) {
-        set_kick(kick_flag_, kick_power_);
-      }
-    }
-
-    // 放電要求判定
-    if (((kick_flag_ == 3) || (switches_state_.pushed_button0 == true)) &&
-      (charge_enable_from_conductor_ == false) &&
-      (switches_state_.turned_on_dip0 == false))
-    {
-      kick_flag_ = 3;
-      kick_power_ = 0;
-      set_kick(kick_flag_, kick_power_);
-    }
-
-
-  // }
 }
 
 void KickerNode::set_kick(int set_kick_type_, float set_kick_power){
@@ -116,8 +81,6 @@ void KickerNode::set_kick(int set_kick_type_, float set_kick_power){
       std::bind(&KickerNode::callback_res_kick, this, std::placeholders::_1));
     is_kicking_ = false;
     is_release_ = true;
-    kick_flag_ = 0;
-    kick_power_ = 0;
   }
 }
 
@@ -182,10 +145,9 @@ void KickerNode::callback_switch_state(const frootspi_msgs::msg::SwitchesState::
   bool charge_enable_;
 
   RCLCPP_DEBUG(this->get_logger(), "switch status received.");
-  // (暫定仕様)hardwareノード起動確認
-  hardware_node_wakeup_ = true;
   switches_state_ = *msg;
 
+  // 充電要求判定
   if (((charge_enable_from_conductor_ == true) || (switches_state_.turned_on_dip0 == true)) &&
     (is_kicking_ == false))
   {
@@ -193,8 +155,15 @@ void KickerNode::callback_switch_state(const frootspi_msgs::msg::SwitchesState::
   } else {
     charge_enable_ = false;
   }
-  // 充電要求判定
   set_charge(charge_enable_);
+
+  // 放電要求判定
+  if ((switches_state_.pushed_button0 == true) &&
+      (charge_enable_from_conductor_ == false) &&
+      (switches_state_.turned_on_dip0 == false))
+  {
+    set_kick(3, 0);
+  }
 }
 
 void KickerNode::callback_kicker_voltage(const frootspi_msgs::msg::BatteryVoltage::SharedPtr msg)
@@ -203,16 +172,21 @@ void KickerNode::callback_kicker_voltage(const frootspi_msgs::msg::BatteryVoltag
   capacitor_voltage_ = msg->voltage;
 }
 
-void KickerNode::callback_kick_flag(const std_msgs::msg::Int16::SharedPtr msg)
+void KickerNode::callback_kick_command(const frootspi_msgs::msg::KickCommand::SharedPtr msg)
 {
-  RCLCPP_DEBUG(this->get_logger(), "kicer flag received.");
-  kick_flag_ = msg->data;
-}
+  // キック可否判定 (ボールがあって、電圧が190V以上で、前回のキックは正常に行われている)
+  RCLCPP_INFO(this->get_logger(), "kicer request.");
+  if ((ball_detection_ == true) && (capacitor_voltage_ >= 190) && (is_release_ == false)) {
+    set_kick(msg->kick_type, msg->kick_power);
+  }
 
-void KickerNode::callback_kick_power(const std_msgs::msg::Float32::SharedPtr msg)
-{
-  RCLCPP_DEBUG(this->get_logger(), "kicer power received.");
-  kick_power_ = msg->data;
+  // 放電要求判定
+  if ((msg->kick_type == 3) &&
+      (charge_enable_from_conductor_ == false) &&
+      (switches_state_.turned_on_dip0 == false))
+  {
+    set_kick(msg->kick_type, msg->kick_power);
+  }
 }
 
 void KickerNode::on_capacitor_charge_request(
@@ -238,7 +212,7 @@ void KickerNode::on_capacitor_charge_request(
   }
   // 充電要求判定
   set_charge(charge_enable_);
-  
+
   response->success = true;
 }
 

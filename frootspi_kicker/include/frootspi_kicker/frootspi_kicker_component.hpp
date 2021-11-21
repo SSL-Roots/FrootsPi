@@ -22,6 +22,7 @@
 #include "frootspi_msgs/msg/battery_voltage.hpp"
 #include "frootspi_msgs/msg/ball_detection.hpp"
 #include "frootspi_msgs/msg/switches_state.hpp"
+#include "frootspi_msgs/msg/kick_command.hpp"
 #include "frootspi_msgs/srv/kick.hpp"
 #include "frootspi_msgs/srv/set_kicker_charging.hpp"
 #include "std_srvs/srv/set_bool.hpp"
@@ -45,8 +46,7 @@ private:
   rclcpp::Subscription<frootspi_msgs::msg::BallDetection>::SharedPtr sub_ball_detection_;
   rclcpp::Subscription<frootspi_msgs::msg::SwitchesState>::SharedPtr sub_switch_state_;
   rclcpp::Subscription<frootspi_msgs::msg::BatteryVoltage>::SharedPtr sub_kicker_voltage_;
-  rclcpp::Subscription<std_msgs::msg::Int16>::SharedPtr sub_kick_flag_;
-  rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr sub_kick_power_;
+  rclcpp::Subscription<frootspi_msgs::msg::KickCommand>::SharedPtr sub_kick_command_;
   // servers
   std::shared_ptr<rclcpp::Service<std_srvs::srv::SetBool>> srv_capacitor_charge_request_;
   // clients
@@ -58,8 +58,7 @@ private:
   void callback_ball_detection(const frootspi_msgs::msg::BallDetection::SharedPtr msg);
   void callback_switch_state(const frootspi_msgs::msg::SwitchesState::SharedPtr msg);
   void callback_kicker_voltage(const frootspi_msgs::msg::BatteryVoltage::SharedPtr msg);
-  void callback_kick_flag(const std_msgs::msg::Int16::SharedPtr msg);
-  void callback_kick_power(const std_msgs::msg::Float32::SharedPtr msg);
+  void callback_kick_command(const frootspi_msgs::msg::KickCommand::SharedPtr msg);
 
   // servers callbacks
   void on_capacitor_charge_request(
@@ -72,12 +71,8 @@ private:
     rclcpp::Client<frootspi_msgs::srv::SetKickerCharging>::SharedFuture future);
   void callback_res_kick(rclcpp::Client<frootspi_msgs::srv::Kick>::SharedFuture future);
 
-  void on_polling_timer();
   void set_kick(int set_kick_type_, float set_kick_power);
   void set_charge(bool set_charge_enable_);
-
-  // timer
-  rclcpp::TimerBase::SharedPtr polling_timer_;
 
   // variable
   bool ball_detection_;
@@ -88,9 +83,6 @@ private:
   bool is_kicking_;
   bool is_release_;
   float capacitor_voltage_;
-  bool hardware_node_wakeup_;
-  int kick_flag_;
-  float kick_power_;
   frootspi_msgs::msg::SwitchesState switches_state_;
 };
 
