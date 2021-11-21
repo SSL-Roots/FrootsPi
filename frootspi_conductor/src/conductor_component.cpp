@@ -23,6 +23,7 @@
 
 namespace frootspi_conductor
 {
+using namespace std::chrono_literals;
 
 Conductor::Conductor(const rclcpp::NodeOptions & options)
 : Node("frootspi_conductor", options)
@@ -35,6 +36,42 @@ Conductor::Conductor(const rclcpp::NodeOptions & options)
   pub_target_velocity_ = create_publisher<geometry_msgs::msg::Twist>("target_velocity", 10);
   pub_dribble_power_ = create_publisher<frootspi_msgs::msg::DribblePower>("dribble_power", 10);
   pub_kick_command_ = create_publisher<frootspi_msgs::msg::KickCommand>("kick_command", 10);
+  client_charge_request_ = create_client<std_srvs::srv::SetBool>("capacitor_charge_request");
+
+  // 充電許可サービスを定期的にコールする関数
+  polling_timer_ = create_wall_timer(5s, std::bind(&Conductor::on_polling_timer, this));
+
+  // 通信タイムアウト検知用のタイマー
+  steady_clock_ = rclcpp::Clock(RCL_STEADY_TIME);
+  sub_command_timestamp_ = steady_clock_.now();
+  timeout_has_printed_ = false;
+}
+
+void Conductor::on_polling_timer()
+{
+  // CON-SAIからのコマンドのタイムアウト処理
+  bool enable_charge = false;
+  if (steady_clock_.now().seconds() - sub_command_timestamp_.seconds() >= 5.0) {
+    // 通信タイムアウト
+    if (timeout_has_printed_ == false) {
+      RCLCPP_WARN(
+        this->get_logger(),
+        "通信タイムアウトのため、キャパシタの充電を停止させます");
+      timeout_has_printed_ = true;
+    }
+    enable_charge = false;
+  } else {
+    timeout_has_printed_ = false;
+    enable_charge = true;
+  }
+
+  // 充電許可サービスをコールする
+  if(client_charge_request_->wait_for_service(std::chrono::seconds(1))){
+    auto request = std::make_shared<std_srvs::srv::SetBool::Request>();
+    request->data = enable_charge;
+    auto result = client_charge_request_->async_send_request(request);
+    RCLCPP_INFO(this->get_logger(), "充電リクエスト:%d", request->data);
+  }
 }
 
 void Conductor::callback_commands(const RobotCommand::SharedPtr msg)
@@ -65,6 +102,9 @@ void Conductor::callback_commands(const RobotCommand::SharedPtr msg)
   auto dribble_power = std::make_unique<frootspi_msgs::msg::DribblePower>();
   dribble_power->power = msg->dribble_power;
   pub_dribble_power_->publish(std::move(dribble_power));
+
+  // 通信タイムアウト処理用に、タイムスタンプを取得する
+  sub_command_timestamp_ = steady_clock_.now();
 }
 
 }  // namespace frootspi_conductor
