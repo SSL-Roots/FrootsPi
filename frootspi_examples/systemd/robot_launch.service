@@ -1,0 +1,18 @@
+[Unit]
+Description=ROS2 robot launch
+After=local-fs.target
+ConditionPathExists=/home/ubuntu/ros2_ws/src/FrootsPi/frootspi_examples/systemd
+
+[Service]
+ExecStart=/home/ubuntu/ros2_ws/src/FrootsPi/frootspi_examples/systemd/robot_launch.sh
+ExecStop=/bin/kill ${MAINPID}
+Restart=on-failure
+StartLimitInterval=60
+StartLimitBurst=3
+KillMode=mixed
+Type=simple
+User=ubuntu
+Group=ubuntu
+
+[Install]
+WantedBy=multi-user.target
