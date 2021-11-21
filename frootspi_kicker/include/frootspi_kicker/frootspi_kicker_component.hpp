@@ -79,9 +79,7 @@ private:
 
   // variable
   bool ball_detection_;
-  bool charge_enable_from_dipsw_;
   bool charge_enable_from_conductor_;
-  bool charge_enable_;
   bool charge_restart_trigger_;
   bool charge_restart_status_;
   bool charge_restart_status_pre_;
@@ -91,9 +89,7 @@ private:
   bool hardware_node_wakeup_;
   int kick_flag_;
   float kick_power_;
-  bool discharge_request_trigger_;
-  bool discharge_request_status_;
-  bool discharge_request_status_pre_;
+  frootspi_msgs::msg::SwitchesState switches_state_;
 };
 
 }  // namespace frootspi_kicker

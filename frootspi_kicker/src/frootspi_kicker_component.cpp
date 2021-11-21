@@ -75,7 +75,9 @@ KickerNode::KickerNode(const rclcpp::NodeOptions & options)
 
 void KickerNode::on_polling_timer()
 {
-  if (((charge_enable_from_conductor_ == true) || (charge_enable_from_dipsw_ == true)) &&
+  bool charge_enable_;
+
+  if (((charge_enable_from_conductor_ == true) || (switches_state_.turned_on_dip0 == true)) &&
     (is_kicking_ == false))
   {
     charge_enable_ = true;
@@ -113,16 +115,9 @@ void KickerNode::on_polling_timer()
     }
 
     // 放電要求判定
-    if ((discharge_request_status_ == true) && (discharge_request_status_pre_ == false)) {
-      discharge_request_trigger_ = true;
-    } else {
-      discharge_request_trigger_ = false;
-    }
-    discharge_request_status_pre_ = discharge_request_status_;
-
-    if (((kick_flag_ == 3) || (discharge_request_trigger_ == true)) &&
+    if (((kick_flag_ == 3) || (switches_state_.pushed_button0 == true)) &&
       (charge_enable_from_conductor_ == false) &&
-      (charge_enable_from_dipsw_ == false))
+      (switches_state_.turned_on_dip0 == false))
     {
       // kick request
       RCLCPP_DEBUG(this->get_logger(), "kicker discharge drive.");
@@ -206,24 +201,9 @@ void KickerNode::callback_ball_detection(const frootspi_msgs::msg::BallDetection
 void KickerNode::callback_switch_state(const frootspi_msgs::msg::SwitchesState::SharedPtr msg)
 {
   RCLCPP_DEBUG(this->get_logger(), "switch status received.");
-
   // (暫定仕様)hardwareノード起動確認
   hardware_node_wakeup_ = true;
-
-  // DipSWによる充電指示を確認
-  // これトリガーにしたほうがいいかも　今の処理だと放電SWとの相性が悪い
-  if (msg->turned_on_dip0 == true) {
-    charge_enable_from_dipsw_ = true;
-  } else {
-    charge_enable_from_dipsw_ = false;
-  }
-
-  // SWによる放電指示を確認
-  if (msg->pushed_button0 == true) {
-    discharge_request_status_ = true;
-  } else {
-    discharge_request_status_ = false;
-  }
+  switches_state_ = *msg;
 }
 
 void KickerNode::callback_kicker_voltage(const frootspi_msgs::msg::BatteryVoltage::SharedPtr msg)
