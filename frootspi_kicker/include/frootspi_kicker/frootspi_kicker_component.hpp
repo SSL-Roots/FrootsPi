@@ -74,6 +74,7 @@ private:
 
   void on_polling_timer();
   void set_kick(int set_kick_type_, float set_kick_power);
+  void set_charge(bool set_charge_enable_);
 
   // timer
   rclcpp::TimerBase::SharedPtr polling_timer_;
