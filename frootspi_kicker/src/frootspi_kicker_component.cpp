@@ -22,7 +22,6 @@
 #include <thread>
 #include <utility>
 #include <vector>
-#include <stdio.h>
 
 #include "frootspi_kicker/frootspi_kicker_component.hpp"
 #include "rclcpp/rclcpp.hpp"

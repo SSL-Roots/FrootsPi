@@ -15,21 +15,19 @@
 #ifndef FROOTSPI_KICKER__FROOTSPI_KICKER_COMPONENT_HPP_
 #define FROOTSPI_KICKER__FROOTSPI_KICKER_COMPONENT_HPP_
 
-#include "rclcpp/rclcpp.hpp"
+#include <memory>
 
-
-#include "frootspi_kicker/visibility_control.h"
-// Kickerノードの入力
 #include "std_msgs/msg/float32.hpp"
 #include "std_msgs/msg/int16.hpp"
 #include "frootspi_msgs/msg/battery_voltage.hpp"
 #include "frootspi_msgs/msg/ball_detection.hpp"
 #include "frootspi_msgs/msg/switches_state.hpp"
-
-// Kickerノードの出力
 #include "frootspi_msgs/srv/kick.hpp"
 #include "frootspi_msgs/srv/set_kicker_charging.hpp"
 #include "std_srvs/srv/set_bool.hpp"
+#include "rclcpp/rclcpp.hpp"
+
+#include "frootspi_kicker/visibility_control.h"
 
 namespace frootspi_kicker
 {
@@ -49,10 +47,8 @@ private:
   rclcpp::Subscription<frootspi_msgs::msg::BatteryVoltage>::SharedPtr sub_kicker_voltage_;
   rclcpp::Subscription<std_msgs::msg::Int16>::SharedPtr sub_kick_flag_;
   rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr sub_kick_power_;
-
   // servers
   std::shared_ptr<rclcpp::Service<std_srvs::srv::SetBool>> srv_capacitor_charge_request_;
-
   // clients
   rclcpp::Client<std_srvs::srv::SetBool>::SharedPtr clnt_ball_detection_led_;
   rclcpp::Client<frootspi_msgs::srv::SetKickerCharging>::SharedPtr clnt_set_kicker_charging_;
@@ -98,7 +94,6 @@ private:
   bool discharge_request_trigger_;
   bool discharge_request_status_;
   bool discharge_request_status_pre_;
-
 };
 
 }  // namespace frootspi_kicker
