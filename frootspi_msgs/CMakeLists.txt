@@ -27,6 +27,7 @@ set(msg_files
   "msg/DribblePower.msg"
   "msg/SwitchesState.msg"
   "msg/WheelVelocities.msg"
+  "msg/KickCommand.msg"
 )
 
 set(srv_files
