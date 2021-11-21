@@ -70,7 +70,6 @@ void Conductor::on_polling_timer()
     auto request = std::make_shared<std_srvs::srv::SetBool::Request>();
     request->data = enable_charge;
     auto result = client_charge_request_->async_send_request(request);
-    RCLCPP_INFO(this->get_logger(), "充電リクエスト:%d", request->data);
   }
 }
 
