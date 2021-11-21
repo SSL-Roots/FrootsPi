@@ -29,6 +29,7 @@
 
 #include "frootspi_msgs/msg/dribble_power.hpp"
 #include "geometry_msgs/msg/twist.hpp"
+#include "std_srvs/srv/set_bool.hpp"
 
 namespace frootspi_conductor
 {
@@ -42,12 +43,19 @@ public:
   explicit Conductor(const rclcpp::NodeOptions & options);
 
 private:
+  void on_polling_timer();
   void callback_commands(const RobotCommand::SharedPtr msg);
 
+  rclcpp::TimerBase::SharedPtr polling_timer_;
   rclcpp::Subscription<RobotCommand>::SharedPtr sub_command_;
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr pub_target_velocity_;
   rclcpp::Publisher<frootspi_msgs::msg::DribblePower>::SharedPtr pub_dribble_power_;
   rclcpp::Publisher<frootspi_msgs::msg::KickCommand>::SharedPtr pub_kick_command_;
+  rclcpp::Client<std_srvs::srv::SetBool>::SharedPtr client_charge_request_;
+
+  rclcpp::Clock steady_clock_;
+  rclcpp::Time sub_command_timestamp_;
+  bool timeout_has_printed_;
 
   int kick_command_;
 };
