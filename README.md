@@ -9,6 +9,7 @@ FrootsPiを動かすROS 2パッケージです。
 - Ubuntu 20.04
 - ROS 2 Foxy
 - [pigpio](http://abyz.me.uk/rpi/pigpio/)
+- [SSL-Roots/consai_frootspi_msgs](https://github.com/SSL-Roots/consai_frootspi_msgs)
 
 ## Installation
 
@@ -32,6 +33,7 @@ $ sudo apt install python-setuptools python3-setuptools
 $ mkdir -p ~/ros2_ws/src
 $ cd ~/ros2_ws/src
 $ git clone https://github.com/SSL-Roots/FrootsPi
+$ git clone https://github.com/SSL-Roots/consai_frootspi_msgs.git
 
 # Install dependencies
 $ rosdep install -r -y --from-paths . --ignore-src
@@ -80,6 +82,14 @@ $ ros2 topic echo /switch_state
     # 別のターミナル
     ros2 launch frootspi_examples robot.launch.py
     ```
+
+### 自動起動設定
+RaspberryPi起動時に自動的にロボットのファームウェアが起動するように設定できます。  
+以下をRaspberryPiのターミナルで実行してください。
+
+```
+~/ros2_ws/src/FrootsPi/frootspi_examples/systemd/register_systemd.sh 
+```
 
 ## Development
 
