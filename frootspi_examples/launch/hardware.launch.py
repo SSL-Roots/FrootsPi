@@ -44,6 +44,12 @@ def generate_launch_description():
                 parameters=[gpio_config],
                 extra_arguments=[{'use_intra_process_comms': True}],
                 ),
+            ComposableNode(
+                package='frootspi_kicker',
+                plugin='frootspi_kicker::KickerNode',
+                name='kicker',
+                extra_arguments=[{'use_intra_process_comms': True}],
+                ),
         ],
         output='screen',
     )

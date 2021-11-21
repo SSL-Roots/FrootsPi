@@ -116,7 +116,9 @@ void Driver::on_polling_timer()
     // 通信タイムアウト
     wheel_controller_.set_wheel_velocities(0, 0, 0);
     if (timeout_has_printed_ == false) {
-      RCLCPP_WARN(this->get_logger(), "通信タイムアウトのため、ホイールの回転速度を0 rad/sにします");
+      RCLCPP_WARN(
+        this->get_logger(),
+        "通信タイムアウトのため、ホイールの回転速度を0 rad/sにします");
       timeout_has_printed_ = true;
     }
   } else {
