@@ -81,6 +81,14 @@ $ ros2 topic echo /switch_state
     ros2 launch frootspi_examples robot.launch.py
     ```
 
+### 自動起動設定
+RaspberryPi起動時に自動的にロボットのファームウェアが起動するように設定できます。  
+以下をRaspberryPiのターミナルで実行してください。
+
+```
+~/ros2_ws/src/FrootsPi/frootspi_examples/systemd/register_systemd.sh 
+```
+
 ## Development
 
 FrootsPiを開発する際にここを読んでください。
