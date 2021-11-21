@@ -66,13 +66,10 @@ private:
     std_srvs::srv::SetBool::Response::SharedPtr response);
 
   // client callbacks
-  void callback_res_ball_led(rclcpp::Client<std_srvs::srv::SetBool>::SharedFuture future);
-  void callback_res_set_kicker_charging(
-    rclcpp::Client<frootspi_msgs::srv::SetKickerCharging>::SharedFuture future);
-  void callback_res_kick(rclcpp::Client<frootspi_msgs::srv::Kick>::SharedFuture future);
 
+  
   void set_kick(int set_kick_type_, float set_kick_power);
-  void set_charge(bool set_charge_enable_);
+  void set_charge(bool charge_enable);
 
   // variable
   bool ball_detection_;
@@ -83,6 +80,8 @@ private:
   bool is_kicking_;
   bool is_release_;
   float capacitor_voltage_;
+  bool set_charge_enable_;
+  bool set_charge_enable_pre_;
   frootspi_msgs::msg::SwitchesState switches_state_;
 };
 

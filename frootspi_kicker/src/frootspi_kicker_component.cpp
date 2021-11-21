@@ -63,6 +63,8 @@ KickerNode::KickerNode(const rclcpp::NodeOptions & options)
   charge_restart_status_pre_ = false;
   is_kicking_ = false;
   is_release_ = false;
+  set_charge_enable_ = false;
+  set_charge_enable_pre_ = false;
 }
 
 void KickerNode::set_kick(int set_kick_type_, float set_kick_power){
@@ -76,17 +78,15 @@ void KickerNode::set_kick(int set_kick_type_, float set_kick_power){
 
     is_kicking_ = true;
   
-    auto kick_result = clnt_kick_->async_send_request(
-      kick_request,
-      std::bind(&KickerNode::callback_res_kick, this, std::placeholders::_1));
+    auto kick_result = clnt_kick_->async_send_request(kick_request);
     is_kicking_ = false;
     is_release_ = true;
   }
 }
 
-void KickerNode::set_charge(bool set_charge_enable_){
+void KickerNode::set_charge(bool charge_enable){
   // 充電指示が出ていて電圧が低いとき　再充電が必要なのか状態判定
-  if ((capacitor_voltage_ < 190) && (set_charge_enable_ == true)) {
+  if ((capacitor_voltage_ < 190) && (charge_enable == true)) {
     charge_restart_status_ = true;
   } else {
     charge_restart_status_ = false;
@@ -102,19 +102,21 @@ void KickerNode::set_charge(bool set_charge_enable_){
   charge_restart_status_pre_ = charge_restart_status_;
 
   if (charge_restart_trigger_ == true) {
-    set_charge_enable_ = false;
+    charge_enable = false;
   }
 
+  set_charge_enable_ = charge_enable;
   // charge request
-  if(clnt_set_kicker_charging_->wait_for_service(std::chrono::seconds(1))){
-    auto charge_request = std::make_shared<frootspi_msgs::srv::SetKickerCharging::Request>();
+  if(set_charge_enable_ != set_charge_enable_pre_){
+    if(clnt_set_kicker_charging_->wait_for_service(std::chrono::seconds(1))){
+      auto charge_request = std::make_shared<frootspi_msgs::srv::SetKickerCharging::Request>();
 
-    charge_request->start_charging = set_charge_enable_;
+      charge_request->start_charging = set_charge_enable_;
 
-    auto charge_result = clnt_set_kicker_charging_->async_send_request(
-      charge_request,
-      std::bind(&KickerNode::callback_res_set_kicker_charging, this, std::placeholders::_1));
+      auto charge_result = clnt_set_kicker_charging_->async_send_request(charge_request);
+    }
   }
+  set_charge_enable_pre_ = set_charge_enable_;
 }
 
 void KickerNode::callback_ball_detection(const frootspi_msgs::msg::BallDetection::SharedPtr msg)
@@ -134,15 +136,13 @@ void KickerNode::callback_ball_detection(const frootspi_msgs::msg::BallDetection
     auto request = std::make_shared<std_srvs::srv::SetBool::Request>();
     request->data = ball_detection_;
 
-    auto result = clnt_ball_detection_led_->async_send_request(
-      request,
-      std::bind(&KickerNode::callback_res_ball_led, this, std::placeholders::_1));
+    auto result = clnt_ball_detection_led_->async_send_request(request);
   }
 }
 
 void KickerNode::callback_switch_state(const frootspi_msgs::msg::SwitchesState::SharedPtr msg)
 {
-  bool charge_enable_;
+  bool charge_enable;
 
   RCLCPP_DEBUG(this->get_logger(), "switch status received.");
   switches_state_ = *msg;
@@ -151,11 +151,11 @@ void KickerNode::callback_switch_state(const frootspi_msgs::msg::SwitchesState::
   if (((charge_enable_from_conductor_ == true) || (switches_state_.turned_on_dip0 == true)) &&
     (is_kicking_ == false))
   {
-    charge_enable_ = true;
+    charge_enable = true;
   } else {
-    charge_enable_ = false;
+    charge_enable = false;
   }
-  set_charge(charge_enable_);
+  set_charge(charge_enable);
 
   // 放電要求判定
   if ((switches_state_.pushed_button0 == true) &&
@@ -193,7 +193,7 @@ void KickerNode::on_capacitor_charge_request(
   const std_srvs::srv::SetBool::Request::SharedPtr request,
   std_srvs::srv::SetBool::Response::SharedPtr response)
 {
-  bool charge_enable_;
+  bool charge_enable;
 
   if (request->data == true) {
     response->message = "キャパシタ充電を許可しました";
@@ -206,33 +206,15 @@ void KickerNode::on_capacitor_charge_request(
   if (((charge_enable_from_conductor_ == true) || (switches_state_.turned_on_dip0 == true)) &&
     (is_kicking_ == false))
   {
-    charge_enable_ = true;
+    charge_enable = true;
   } else {
-    charge_enable_ = false;
+    charge_enable = false;
   }
   // 充電要求判定
-  set_charge(charge_enable_);
+  set_charge(charge_enable);
 
   response->success = true;
 }
-
-
-void KickerNode::callback_res_ball_led(rclcpp::Client<std_srvs::srv::SetBool>::SharedFuture future)
-{
-  RCLCPP_DEBUG(this->get_logger(), future.get()->message);
-}
-
-void KickerNode::callback_res_set_kicker_charging(
-  rclcpp::Client<frootspi_msgs::srv::SetKickerCharging>::SharedFuture future)
-{
-  RCLCPP_DEBUG(this->get_logger(), future.get()->message);
-}
-
-void KickerNode::callback_res_kick(rclcpp::Client<frootspi_msgs::srv::Kick>::SharedFuture future)
-{
-  RCLCPP_DEBUG(this->get_logger(), future.get()->message);
-}
-
 
 }  // namespace frootspi_kicker
 
