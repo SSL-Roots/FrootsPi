@@ -43,13 +43,12 @@ public:
 
   bool open(const int pi);
   bool close();
-  bool send_data(void);
+  bool send_data(FrontIndicateData * front_indicate_data);
 
 private:
  
   int i2c_handler_;
   int pi_;
-  FrontIndicateData front_indicate_data_;
 };
 
 #endif  // FROOTSPI_HARDWARE__FRONT_DISPLAY_COMMUNICATOR_HPP_

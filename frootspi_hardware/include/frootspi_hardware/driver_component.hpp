@@ -128,6 +128,9 @@ private:
   bool enable_kicker_charging_;
   int discharge_kick_count_;
   WheelController wheel_controller_;
+  int front_display_prescaler_count_;
+  int capacitor_monitor_prescaler_count_;
+  FrontIndicateData front_indicate_data_;
 };
 
 }  // namespace frootspi_hardware

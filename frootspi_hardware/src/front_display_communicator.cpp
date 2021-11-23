@@ -61,25 +61,16 @@ bool FrontDisplayCommunicator::close()
   
 }
 
-bool FrontDisplayCommunicator::send_data(void)
+bool FrontDisplayCommunicator::send_data(FrontIndicateData * front_indicate_data)
 {
   char data[5] = {0};
 
-  front_indicate_data_.Parameter.RobotID = 10;
-  front_indicate_data_.Parameter.BatVol = (unsigned char)(16.5*10);
-  front_indicate_data_.Parameter.CapVol = 200;
-  front_indicate_data_.Parameter.BallSens = false;
-  front_indicate_data_.Parameter.CapacitorSta = false;
-  front_indicate_data_.Parameter.ComCount += 1;
-  front_indicate_data_.Parameter.KickReq = false;
-  front_indicate_data_.Parameter.RobotMode = 1;
-  front_indicate_data_.Parameter.ChargeReq = true;
-  front_indicate_data_.Parameter.ComAIPC = false;
-  front_indicate_data_.Parameter.DribbleReq = true;
-
-  for(int i = 0; i < 5 ; i++)
-  {
-    data[i] = *(front_indicate_data_.Indicate_data + i);   
+  // front_indicate_data->Parameter.ComCount += 1;
+  // if(front_indicate_data->Parameter.ComCount >= 255){
+  //   front_indicate_data->Parameter.ComCount = 0;
+  // }
+  for(int i = 0; i<5 ; i++){
+    data[i] = *(front_indicate_data->Indicate_data + i);
   }
 
   if(i2c_write_device(pi_, i2c_handler_, data, 5) > 0)
