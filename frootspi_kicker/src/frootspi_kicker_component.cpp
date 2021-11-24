@@ -62,6 +62,7 @@ KickerNode::KickerNode(const rclcpp::NodeOptions & options)
   ball_detection_pre_ = false;
   charge_restart_status_ = false;
   charge_restart_status_pre_ = false;
+  charge_enable_from_conductor_ = false;
   is_kicking_ = false;
   is_release_ = false;
   set_charge_enable_ = false;
