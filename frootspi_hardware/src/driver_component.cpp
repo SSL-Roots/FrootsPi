@@ -208,12 +208,15 @@ void Driver::on_kick(
   frootspi_msgs::srv::Kick::Response::SharedPtr response)
 {
   const int MAX_SLEEP_TIME_MSEC_FOR_STRAIGHT = 25;
+  const double MAX_KICK_SPEED = 6.5;  // m/s
+
   front_indicate_data_.Parameter.KickReq = true;
 
   if (request->kick_type == frootspi_msgs::srv::Kick::Request::KICK_TYPE_STRAIGHT) {
     // ストレートキック
 
-    double kick_power = request->kick_power;
+    // kick_power を 0.0 ~ 1.0に落とし込む
+    double kick_power = request->kick_power / MAX_KICK_SPEED;
     if (kick_power > 1.0) {
       kick_power = 1.0;
     } else if (kick_power < 0) {
