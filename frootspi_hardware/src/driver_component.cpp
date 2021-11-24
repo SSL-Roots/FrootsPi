@@ -70,12 +70,14 @@ void Driver::on_polling_timer()
   // ボール検出をパブリッシュ
   auto ball_detection_msg = std::make_unique<frootspi_msgs::msg::BallDetection>();
   ball_detection_msg->detected = gpio_read(pi_, gpio_ball_sensor_);
+  front_indicate_data_.Parameter.BallSens = ball_detection_msg->detected;
   pub_ball_detection_->publish(std::move(ball_detection_msg));
 
   // バッテリー電圧をパブリッシュ
   auto battery_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
   battery_monitor_.main_battery_info_read(
     battery_voltage_msg->voltage, battery_voltage_msg->voltage_status);
+  front_indicate_data_.Parameter.BatVol = (unsigned char)(battery_voltage_msg->voltage*10);
   // frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_FULL;
   pub_battery_voltage_->publish(std::move(battery_voltage_msg));
 
@@ -87,10 +89,21 @@ void Driver::on_polling_timer()
   pub_ups_voltage_->publish(std::move(ups_voltage_msg));
 
   // キッカー（昇圧回路）電圧をパブリッシュ
-  auto kicker_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
-  capacitor_monitor_.capacitor_info_read(
-    kicker_voltage_msg->voltage, kicker_voltage_msg->voltage_status);
-  pub_kicker_voltage_->publish(std::move(kicker_voltage_msg));
+  capacitor_monitor_prescaler_count_++;
+  if(capacitor_monitor_prescaler_count_ > 50){
+    auto kicker_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
+    capacitor_monitor_.capacitor_info_read(
+      kicker_voltage_msg->voltage, kicker_voltage_msg->voltage_status);
+    front_indicate_data_.Parameter.CapVol = (unsigned char)(kicker_voltage_msg->voltage);
+    if(kicker_voltage_msg->voltage_status >= frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_OK){
+      front_indicate_data_.Parameter.CapacitorSta = true;
+    } else {
+      front_indicate_data_.Parameter.CapacitorSta = false;
+    }
+    pub_kicker_voltage_->publish(std::move(kicker_voltage_msg));
+    capacitor_monitor_prescaler_count_ = 0;
+  }
+
 
   // スイッチ状態をパブリッシュ
   auto switches_state_msg = std::make_unique<frootspi_msgs::msg::SwitchesState>();
@@ -123,6 +136,16 @@ void Driver::on_polling_timer()
     }
   } else {
     timeout_has_printed_ = false;
+  }
+  
+  // フロント基板へ情報を送信
+  front_display_prescaler_count_++;
+  if((front_display_prescaler_count_ > 100) && (capacitor_monitor_prescaler_count_ != 0)){
+    std::string node_namespace = (std::string)get_namespace();
+    node_namespace.replace(0,6,"");
+    front_indicate_data_.Parameter.RobotID = atoi(node_namespace.c_str());
+    front_display_communicator_.send_data(&front_indicate_data_);
+    front_display_prescaler_count_ = 0;
   }
 }
 
@@ -159,6 +182,12 @@ void Driver::callback_dribble_power(const frootspi_msgs::msg::DribblePower::Shar
     power = 0.0;
   }
 
+  if(power > 0){
+    front_indicate_data_.Parameter.DribbleReq = true;
+  } else {
+    front_indicate_data_.Parameter.DribbleReq = false;
+  }
+  
   // 負論理のため反転
   // 少数を切り上げるため0.1を足す (例：20.0 -> 19となるので、20.1 -> 20とさせる)
   int dribble_duty_cycle = DRIBBLE_PWM_DUTY_CYCLE * (1.0 - power) + 0.1;
@@ -180,6 +209,8 @@ void Driver::on_kick(
 {
   const int MAX_SLEEP_TIME_MSEC_FOR_STRAIGHT = 25;
   const double MAX_KICK_SPEED = 6.5;  // m/s
+
+  front_indicate_data_.Parameter.KickReq = true;
 
   if (request->kick_type == frootspi_msgs::srv::Kick::Request::KICK_TYPE_STRAIGHT) {
     // ストレートキック
@@ -226,6 +257,7 @@ void Driver::on_kick(
     response->success = false;
     response->message = "未定義のキックタイプです";
   }
+  front_indicate_data_.Parameter.KickReq = false;
 }
 
 void Driver::on_set_kicker_charging(
@@ -240,11 +272,13 @@ void Driver::on_set_kicker_charging(
       enable_kicker_charging_ = true;
       RCLCPP_INFO(this->get_logger(), "キッカーの充電開始.");
       response->message = "充電を開始しました";
+      front_indicate_data_.Parameter.ChargeReq = true;
     } else {
       gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_LOW);
       enable_kicker_charging_ = false;
       RCLCPP_INFO(this->get_logger(), "キッカーの充電停止.");
       response->message = "充電を停止しました";
+      front_indicate_data_.Parameter.ChargeReq = false;
     }
 
     response->success = true;
@@ -387,6 +421,11 @@ CallbackReturn Driver::on_configure(const rclcpp_lifecycle::State &)
     return CallbackReturn::FAILURE;
   }
 
+  if (!front_display_communicator_.open(pi_)) {
+    RCLCPP_ERROR(this->get_logger(), "Failed to connect Front Dislplay Communicator.");
+    return CallbackReturn::FAILURE;
+  }
+
   if (!wheel_controller_.device_open()) {
     RCLCPP_ERROR(this->get_logger(), "Failed to connect wheel controller.");
     return CallbackReturn::FAILURE;
@@ -482,6 +521,8 @@ CallbackReturn Driver::on_cleanup(const rclcpp_lifecycle::State &)
   io_expander_.close();
   capacitor_monitor_.close();
   battery_monitor_.close();
+  lcd_driver_.close();
+  front_display_communicator_.close();
   pigpio_stop(pi_);
 
   return CallbackReturn::SUCCESS;
@@ -503,6 +544,8 @@ CallbackReturn Driver::on_shutdown(const rclcpp_lifecycle::State &)
   io_expander_.close();
   capacitor_monitor_.close();
   battery_monitor_.close();
+  lcd_driver_.close();
+  front_display_communicator_.close();
   pigpio_stop(pi_);
 
   return CallbackReturn::SUCCESS;
