@@ -41,7 +41,7 @@ def generate_launch_description():
 
     container = ComposableNodeContainer(
         name='frootspi_container',
-        namespace='',
+        namespace=['robot', LaunchConfiguration('id')],
         package='rclcpp_components',
         executable='component_container',  # component_container_mtはmulti threads
         sigterm_timeout='20',  # 終了時の放電時間だけCtrl+C入力後の猶予を設ける
