@@ -73,24 +73,29 @@ void Driver::on_polling_timer()
   front_indicate_data_.Parameter.BallSens = ball_detection_msg->detected;
   pub_ball_detection_->publish(std::move(ball_detection_msg));
 
-  // バッテリー電圧をパブリッシュ
-  auto battery_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
-  battery_monitor_.main_battery_info_read(
-    battery_voltage_msg->voltage, battery_voltage_msg->voltage_status);
-  front_indicate_data_.Parameter.BatVol = (unsigned char)(battery_voltage_msg->voltage*10);
-  // frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_FULL;
-  pub_battery_voltage_->publish(std::move(battery_voltage_msg));
+  battery_monitor_prescaler_count_++;
+  if(battery_monitor_prescaler_count_ > 50){
+    // バッテリー電圧をパブリッシュ
+    auto battery_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
+    battery_monitor_.main_battery_info_read(
+      battery_voltage_msg->voltage, battery_voltage_msg->voltage_status);
+    front_indicate_data_.Parameter.BatVol = (unsigned char)(battery_voltage_msg->voltage*10);
+    // frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_FULL;
+    pub_battery_voltage_->publish(std::move(battery_voltage_msg));
 
-  // UPS(無停電電源装置)電圧をパブリッシュ
-  auto ups_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
-  battery_monitor_.sub_battery_info_read(
-    ups_voltage_msg->voltage, ups_voltage_msg->voltage_status);
-  // frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_TOO_LOW;
-  pub_ups_voltage_->publish(std::move(ups_voltage_msg));
+    // UPS(無停電電源装置)電圧をパブリッシュ
+    auto ups_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
+    battery_monitor_.sub_battery_info_read(
+      ups_voltage_msg->voltage, ups_voltage_msg->voltage_status);
+    // frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_TOO_LOW;
+    pub_ups_voltage_->publish(std::move(ups_voltage_msg));
+    battery_monitor_prescaler_count_ = 0;
+  }
+
 
   // キッカー（昇圧回路）電圧をパブリッシュ
   capacitor_monitor_prescaler_count_++;
-  if(capacitor_monitor_prescaler_count_ > 50){
+  if((capacitor_monitor_prescaler_count_ > 50)&&(battery_monitor_prescaler_count_ != 0)){
     auto kicker_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
     capacitor_monitor_.capacitor_info_read(
       kicker_voltage_msg->voltage, kicker_voltage_msg->voltage_status);
