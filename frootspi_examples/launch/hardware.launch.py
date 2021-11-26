@@ -67,7 +67,7 @@ def generate_launch_description():
     )
 
     configure_node = ExecuteProcess(
-        cmd=['ros2 lifecycle set hardware_driver configure'],
+        cmd=['sleep 5 && ros2 lifecycle set hardware_driver configure'],
         shell=True,
         output='screen',
     )
