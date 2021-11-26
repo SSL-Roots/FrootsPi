@@ -131,6 +131,8 @@ private:
   int front_display_prescaler_count_;
   int capacitor_monitor_prescaler_count_;
   int battery_monitor_prescaler_count_;
+  int switch_prescaler_count_;
+  int wheel_velocity_prescaler_count_;
   FrontIndicateData front_indicate_data_;
 };
 

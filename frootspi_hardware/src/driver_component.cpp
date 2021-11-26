@@ -109,23 +109,31 @@ void Driver::on_polling_timer()
     capacitor_monitor_prescaler_count_ = 0;
   }
 
+  switch_prescaler_count_++;
+  if((switch_prescaler_count_ > 500)&&(capacitor_monitor_prescaler_count_ != 0)){
+    // スイッチ状態をパブリッシュ
+    auto switches_state_msg = std::make_unique<frootspi_msgs::msg::SwitchesState>();
+    io_expander_.read(
+      switches_state_msg->pushed_button0, switches_state_msg->pushed_button1,
+      switches_state_msg->pushed_button2, switches_state_msg->pushed_button3,
+      switches_state_msg->turned_on_dip0, switches_state_msg->turned_on_dip1);
+    // シャットダウンスイッチは負論理なので、XORでビット反転させる
+    switches_state_msg->pushed_shutdown = gpio_read(pi_, GPIO_SHUTDOWN_SWITCH) ^ 1;
+    pub_switches_state_->publish(std::move(switches_state_msg));
+    switch_prescaler_count_ = 0;
+  }
 
-  // スイッチ状態をパブリッシュ
-  auto switches_state_msg = std::make_unique<frootspi_msgs::msg::SwitchesState>();
-  io_expander_.read(
-    switches_state_msg->pushed_button0, switches_state_msg->pushed_button1,
-    switches_state_msg->pushed_button2, switches_state_msg->pushed_button3,
-    switches_state_msg->turned_on_dip0, switches_state_msg->turned_on_dip1);
-  // シャットダウンスイッチは負論理なので、XORでビット反転させる
-  switches_state_msg->pushed_shutdown = gpio_read(pi_, GPIO_SHUTDOWN_SWITCH) ^ 1;
-  pub_switches_state_->publish(std::move(switches_state_msg));
+  wheel_velocity_prescaler_count_++;
+  if((wheel_velocity_prescaler_count_ > 100)&&(switch_prescaler_count_ != 0)){
+    // オムニホイール回転速度をパブリッシュ
+    auto wheel_velocities_msg = std::make_unique<frootspi_msgs::msg::WheelVelocities>();
+    wheel_velocities_msg->front_left = 1.0;  // 左前ホイール回転速度 [rad/sec]
+    wheel_velocities_msg->front_right = 1.0;  // 右前ホイール回転速度 [rad/sec]
+    wheel_velocities_msg->back_center = 1.0;  // 後ホイール回転速度 [rad/sec]
+    pub_present_wheel_velocities_->publish(std::move(wheel_velocities_msg));
+    wheel_velocity_prescaler_count_ = 0;
+  }
 
-  // オムニホイール回転速度をパブリッシュ
-  auto wheel_velocities_msg = std::make_unique<frootspi_msgs::msg::WheelVelocities>();
-  wheel_velocities_msg->front_left = 1.0;  // 左前ホイール回転速度 [rad/sec]
-  wheel_velocities_msg->front_right = 1.0;  // 右前ホイール回転速度 [rad/sec]
-  wheel_velocities_msg->back_center = 1.0;  // 後ホイール回転速度 [rad/sec]
-  pub_present_wheel_velocities_->publish(std::move(wheel_velocities_msg));
 
   // IMUセンサの情報をパブリッシュ
 
