@@ -53,7 +53,8 @@ public:
   ~Driver();
 
 private:
-  void on_polling_timer();
+  void on_polling_timer_drive();
+  void on_polling_timer_monitor();
   void on_discharge_kicker_timer();
   void callback_dribble_power(const frootspi_msgs::msg::DribblePower::SharedPtr msg);
   void callback_wheel_velocities(const frootspi_msgs::msg::WheelVelocities::SharedPtr msg);
@@ -112,7 +113,8 @@ private:
   std::shared_ptr<rclcpp::Service<std_srvs::srv::SetBool>> srv_set_center_led_;
   std::shared_ptr<rclcpp::Service<std_srvs::srv::SetBool>> srv_set_right_led_;
 
-  rclcpp::TimerBase::SharedPtr polling_timer_;
+  rclcpp::TimerBase::SharedPtr polling_timer_drive_;
+  rclcpp::TimerBase::SharedPtr polling_timer_monitor_;
   rclcpp::TimerBase::SharedPtr discharge_kicker_timer_;
   rclcpp::Clock steady_clock_;
   rclcpp::Time sub_wheel_timestamp_;
@@ -130,6 +132,9 @@ private:
   WheelController wheel_controller_;
   int front_display_prescaler_count_;
   int capacitor_monitor_prescaler_count_;
+  int battery_monitor_prescaler_count_;
+  int switch_prescaler_count_;
+  int wheel_velocity_prescaler_count_;
   FrontIndicateData front_indicate_data_;
 };
 

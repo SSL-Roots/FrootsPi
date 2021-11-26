@@ -65,7 +65,7 @@ Driver::~Driver()
   pigpio_stop(pi_);
 }
 
-void Driver::on_polling_timer()
+void Driver::on_polling_timer_drive()
 {
   // ボール検出をパブリッシュ
   auto ball_detection_msg = std::make_unique<frootspi_msgs::msg::BallDetection>();
@@ -73,6 +73,27 @@ void Driver::on_polling_timer()
   front_indicate_data_.Parameter.BallSens = ball_detection_msg->detected;
   pub_ball_detection_->publish(std::move(ball_detection_msg));
 
+  // タイヤ目標速度のタイムアウト処理
+  if (steady_clock_.now().seconds() - sub_wheel_timestamp_.seconds() >= 0.5) {
+    // 通信タイムアウト
+    wheel_controller_.set_wheel_velocities(0, 0, 0);
+    if (timeout_has_printed_ == false) {
+      RCLCPP_WARN(
+        this->get_logger(),
+        "通信タイムアウトのため、ホイールの回転速度を0 rad/sにします");
+      timeout_has_printed_ = true;
+    }
+  } else {
+    timeout_has_printed_ = false;
+  }
+
+  // IMUセンサの情報をパブリッシュ
+
+
+}
+
+void Driver::on_polling_timer_monitor()
+{
   // バッテリー電圧をパブリッシュ
   auto battery_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
   battery_monitor_.main_battery_info_read(
@@ -88,63 +109,51 @@ void Driver::on_polling_timer()
   // frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_TOO_LOW;
   pub_ups_voltage_->publish(std::move(ups_voltage_msg));
 
-  // キッカー（昇圧回路）電圧をパブリッシュ
-  capacitor_monitor_prescaler_count_++;
-  if(capacitor_monitor_prescaler_count_ > 50){
-    auto kicker_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
-    capacitor_monitor_.capacitor_info_read(
-      kicker_voltage_msg->voltage, kicker_voltage_msg->voltage_status);
-    front_indicate_data_.Parameter.CapVol = (unsigned char)(kicker_voltage_msg->voltage);
-    if(kicker_voltage_msg->voltage_status >= frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_OK){
-      front_indicate_data_.Parameter.CapacitorSta = true;
-    } else {
-      front_indicate_data_.Parameter.CapacitorSta = false;
-    }
-    pub_kicker_voltage_->publish(std::move(kicker_voltage_msg));
-    capacitor_monitor_prescaler_count_ = 0;
+// キッカー（昇圧回路）電圧をパブリッシュ
+  auto kicker_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
+  capacitor_monitor_.capacitor_info_read(
+    kicker_voltage_msg->voltage, kicker_voltage_msg->voltage_status);
+  front_indicate_data_.Parameter.CapVol = (unsigned char)(kicker_voltage_msg->voltage);
+  if(kicker_voltage_msg->voltage_status >= frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_OK){
+    front_indicate_data_.Parameter.CapacitorSta = true;
+  } else {
+    front_indicate_data_.Parameter.CapacitorSta = false;
+  }
+  pub_kicker_voltage_->publish(std::move(kicker_voltage_msg));
+
+
+  switch_prescaler_count_++;
+  if(switch_prescaler_count_ > 10){
+    // スイッチ状態をパブリッシュ
+    auto switches_state_msg = std::make_unique<frootspi_msgs::msg::SwitchesState>();
+    io_expander_.read(
+      switches_state_msg->pushed_button0, switches_state_msg->pushed_button1,
+      switches_state_msg->pushed_button2, switches_state_msg->pushed_button3,
+      switches_state_msg->turned_on_dip0, switches_state_msg->turned_on_dip1);
+    // シャットダウンスイッチは負論理なので、XORでビット反転させる
+    switches_state_msg->pushed_shutdown = gpio_read(pi_, GPIO_SHUTDOWN_SWITCH) ^ 1;
+    pub_switches_state_->publish(std::move(switches_state_msg));
+    switch_prescaler_count_ = 0;
   }
 
-
-  // スイッチ状態をパブリッシュ
-  auto switches_state_msg = std::make_unique<frootspi_msgs::msg::SwitchesState>();
-  io_expander_.read(
-    switches_state_msg->pushed_button0, switches_state_msg->pushed_button1,
-    switches_state_msg->pushed_button2, switches_state_msg->pushed_button3,
-    switches_state_msg->turned_on_dip0, switches_state_msg->turned_on_dip1);
-  // シャットダウンスイッチは負論理なので、XORでビット反転させる
-  switches_state_msg->pushed_shutdown = gpio_read(pi_, GPIO_SHUTDOWN_SWITCH) ^ 1;
-  pub_switches_state_->publish(std::move(switches_state_msg));
-
-  // オムニホイール回転速度をパブリッシュ
-  auto wheel_velocities_msg = std::make_unique<frootspi_msgs::msg::WheelVelocities>();
-  wheel_velocities_msg->front_left = 1.0;  // 左前ホイール回転速度 [rad/sec]
-  wheel_velocities_msg->front_right = 1.0;  // 右前ホイール回転速度 [rad/sec]
-  wheel_velocities_msg->back_center = 1.0;  // 後ホイール回転速度 [rad/sec]
-  pub_present_wheel_velocities_->publish(std::move(wheel_velocities_msg));
-
-  // IMUセンサの情報をパブリッシュ
-
-  // タイヤ目標速度のタイムアウト処理
-  if (steady_clock_.now().seconds() - sub_wheel_timestamp_.seconds() >= 0.5) {
-    // 通信タイムアウト
-    wheel_controller_.set_wheel_velocities(0, 0, 0);
-    if (timeout_has_printed_ == false) {
-      RCLCPP_WARN(
-        this->get_logger(),
-        "通信タイムアウトのため、ホイールの回転速度を0 rad/sにします");
-      timeout_has_printed_ = true;
-    }
-  } else {
-    timeout_has_printed_ = false;
+  wheel_velocity_prescaler_count_++;
+  if((wheel_velocity_prescaler_count_ > 2)&&(switch_prescaler_count_ != 0)){
+    // オムニホイール回転速度をパブリッシュ
+    auto wheel_velocities_msg = std::make_unique<frootspi_msgs::msg::WheelVelocities>();
+    wheel_velocities_msg->front_left = 1.0;  // 左前ホイール回転速度 [rad/sec]
+    wheel_velocities_msg->front_right = 1.0;  // 右前ホイール回転速度 [rad/sec]
+    wheel_velocities_msg->back_center = 1.0;  // 後ホイール回転速度 [rad/sec]
+    pub_present_wheel_velocities_->publish(std::move(wheel_velocities_msg));
+    wheel_velocity_prescaler_count_ = 0;
   }
   
   // フロント基板へ情報を送信
   front_display_prescaler_count_++;
-  if((front_display_prescaler_count_ > 100) && (capacitor_monitor_prescaler_count_ != 0)){
+  if(front_display_prescaler_count_ > 10){
     std::string node_namespace = (std::string)get_namespace();
     node_namespace.replace(0,6,"");
     front_indicate_data_.Parameter.RobotID = atoi(node_namespace.c_str());
-    front_display_communicator_.send_data(&front_indicate_data_);
+    // front_display_communicator_.send_data(&front_indicate_data_);
     front_display_prescaler_count_ = 0;
   }
 }
@@ -350,8 +359,10 @@ CallbackReturn Driver::on_configure(const rclcpp_lifecycle::State &)
   RCLCPP_INFO(this->get_logger(), "on_configure() is called.");
 
   // GPIOを定期的にread / writeするためのタイマー
-  polling_timer_ = create_wall_timer(1ms, std::bind(&Driver::on_polling_timer, this));
-  polling_timer_->cancel();  // ノードがActiveになるまでタイマーオフ
+  polling_timer_drive_ = create_wall_timer(2ms, std::bind(&Driver::on_polling_timer_drive, this));
+  polling_timer_drive_->cancel();  // ノードがActiveになるまでタイマーオフ
+  polling_timer_monitor_ = create_wall_timer(50ms, std::bind(&Driver::on_polling_timer_monitor, this));
+  polling_timer_monitor_->cancel();  // ノードがActiveになるまでタイマーオフ
   // コンデンサ放電時に使うタイマー
   discharge_kicker_timer_ =
     create_wall_timer(500ms, std::bind(&Driver::on_discharge_kicker_timer, this));
@@ -477,7 +488,8 @@ CallbackReturn Driver::on_activate(const rclcpp_lifecycle::State &)
   pub_present_wheel_velocities_->on_activate();
   pub_imu_->on_activate();
 
-  polling_timer_->reset();
+  polling_timer_drive_->reset();
+  polling_timer_monitor_->reset();
 
   gpio_write(pi_, GPIO_KICK_SUPPLY_POWER, PI_HIGH);
 
@@ -495,7 +507,8 @@ CallbackReturn Driver::on_deactivate(const rclcpp_lifecycle::State &)
   pub_switches_state_->on_deactivate();
   pub_present_wheel_velocities_->on_deactivate();
   pub_imu_->on_deactivate();
-  polling_timer_->cancel();
+  polling_timer_drive_->cancel();
+  polling_timer_monitor_->cancel();
 
   gpio_write(pi_, GPIO_DRIBBLE_PWM, PI_HIGH);  // 負論理のためHighでモータオフ
 
@@ -516,7 +529,8 @@ CallbackReturn Driver::on_cleanup(const rclcpp_lifecycle::State &)
   pub_switches_state_.reset();
   pub_present_wheel_velocities_.reset();
   pub_imu_.reset();
-  polling_timer_.reset();
+  polling_timer_drive_.reset();
+  polling_timer_monitor_->reset();
 
   io_expander_.close();
   capacitor_monitor_.close();
@@ -539,7 +553,8 @@ CallbackReturn Driver::on_shutdown(const rclcpp_lifecycle::State &)
   pub_switches_state_.reset();
   pub_present_wheel_velocities_.reset();
   pub_imu_.reset();
-  polling_timer_.reset();
+  polling_timer_drive_.reset();
+  polling_timer_monitor_->reset();
 
   io_expander_.close();
   capacitor_monitor_.close();
