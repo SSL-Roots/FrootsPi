@@ -149,7 +149,7 @@ void Driver::on_polling_timer()
     std::string node_namespace = (std::string)get_namespace();
     node_namespace.replace(0,6,"");
     front_indicate_data_.Parameter.RobotID = atoi(node_namespace.c_str());
-    front_display_communicator_.send_data(&front_indicate_data_);
+    // front_display_communicator_.send_data(&front_indicate_data_);
     front_display_prescaler_count_ = 0;
   }
 }
