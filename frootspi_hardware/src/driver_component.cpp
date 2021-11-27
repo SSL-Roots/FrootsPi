@@ -139,14 +139,14 @@ void Driver::on_polling_timer()
   }
   
   // フロント基板へ情報を送信
-  front_display_prescaler_count_++;
-  if((front_display_prescaler_count_ > 100) && (capacitor_monitor_prescaler_count_ != 0)){
-    std::string node_namespace = (std::string)get_namespace();
-    node_namespace.replace(0,6,"");
-    front_indicate_data_.Parameter.RobotID = atoi(node_namespace.c_str());
-    front_display_communicator_.send_data(&front_indicate_data_);
-    front_display_prescaler_count_ = 0;
-  }
+  // front_display_prescaler_count_++;
+  // if((front_display_prescaler_count_ > 100) && (capacitor_monitor_prescaler_count_ != 0)){
+  //   std::string node_namespace = (std::string)get_namespace();
+  //   node_namespace.replace(0,6,"");
+  //   front_indicate_data_.Parameter.RobotID = atoi(node_namespace.c_str());
+  //   front_display_communicator_.send_data(&front_indicate_data_);
+  //   front_display_prescaler_count_ = 0;
+  // }
 }
 
 void Driver::on_discharge_kicker_timer()
@@ -421,10 +421,10 @@ CallbackReturn Driver::on_configure(const rclcpp_lifecycle::State &)
     return CallbackReturn::FAILURE;
   }
 
-  if (!front_display_communicator_.open(pi_)) {
-    RCLCPP_ERROR(this->get_logger(), "Failed to connect Front Dislplay Communicator.");
-    return CallbackReturn::FAILURE;
-  }
+  // if (!front_display_communicator_.open(pi_)) {
+  //   RCLCPP_ERROR(this->get_logger(), "Failed to connect Front Dislplay Communicator.");
+  //   return CallbackReturn::FAILURE;
+  // }
 
   if (!wheel_controller_.device_open()) {
     RCLCPP_ERROR(this->get_logger(), "Failed to connect wheel controller.");
