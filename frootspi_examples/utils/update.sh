@@ -32,7 +32,7 @@ echo "SSH Connect..."
 ssh ${SSH_USER}@${IP_ADDR} "sudo systemctl stop robot_launch"
 ssh ${SSH_USER}@${IP_ADDR} "cd ~/ros2_ws/src/FrootsPi && git switch main && git pull"
 ssh ${SSH_USER}@${IP_ADDR} "bash -c 'source /opt/ros/foxy/setup.bash && cd ~/ros2_ws/ && colcon build --symlink-install'"
-ssh ${SSH_USER}@${IP_ADDR} "sudo systemctl start robot_launch"
+ssh ${SSH_USER}@${IP_ADDR} "sudo reboot now"
 
 echo "SSH Command completed"
 echo "=========="
