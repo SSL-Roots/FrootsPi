@@ -2,6 +2,8 @@
 
 FrootsPiを動かすROS 2パッケージです。
 
+![](./resources/frootspi.jpg)
+
 ## Requirements
 
 - FrootsPi
