@@ -49,6 +49,10 @@ $ MAKEFLAGS=-j1 colcon build --executor sequential --symlink-install
 $ source ~/ros2_ws/install/setup.bash
 ```
 
+### GPIOの初期化
+
+[SSL-Roots/init_frootspi_gpio_script](https://github.com/SSL-Roots/init_frootspi_gpio_script) のスクリプトを実行してください。
+
 ## Examples
 
 ### Start frootspi
