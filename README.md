@@ -47,10 +47,6 @@ $ MAKEFLAGS=-j1 colcon build --executor sequential --symlink-install
 $ source ~/ros2_ws/install/setup.bash
 ```
 
-## LICENSE
-
-Apache 2.0
-
 ## Examples
 
 ### Start frootspi
@@ -91,9 +87,22 @@ RaspberryPi起動時に自動的にロボットのファームウェアが起動
 ~/ros2_ws/src/FrootsPi/frootspi_examples/systemd/register_systemd.sh 
 ```
 
+## License
+
+(C) 2021 Roots
+
+各ファイルはファイル内に明記されているライセンスに従います。
+ライセンスが明記されていない場合は、Apache License, Version 2.0に従います。
+ライセンスの全文は[LICENSE](./LICENSE)から確認できます。
+
 ## Development
 
 FrootsPiを開発する際にここを読んでください。
+
+### 開発方針について
+
+- 本ソフトウェアはオープンソースですが、開発はオープンではありません
+- チームの開発方針を優先するため、外部からのIssue、Pull Requestには対応できない場合があります
 
 ### Lint
 
