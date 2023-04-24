@@ -86,12 +86,6 @@ def generate_launch_description():
         output='screen',
     )
 
-    start_pigpiod = ExecuteProcess(
-        cmd=['sudo pigpiod -s 1'],  # サンプリングレートを1usecに変更
-        shell=True,
-        output='screen',
-    )
-
     start_socket_can0 = ExecuteProcess(
         cmd=['sudo ip link set can0 up type can bitrate 1000000'],
         shell=True,
@@ -112,7 +106,6 @@ def generate_launch_description():
 
     return LaunchDescription([
         push_ns,
-        start_pigpiod,
         start_socket_can0,
         RegisterEventHandler(
             event_handler=OnProcessStart(
