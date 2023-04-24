@@ -25,13 +25,26 @@ from launch_ros.actions import ComposableNodeContainer
 from launch_ros.actions import PushRosNamespace
 from launch_ros.descriptions import ComposableNode
 
+import yaml
+from pathlib import Path
+
+DEFAULT_FILE_PATH = Path.home() / Path("robot_config.yaml")
+
+def get_configuration_from_file(file_path):
+    # TODO: 引数でコンフィグファイルのパスを指定する
+
+    # yamlで書かれた設定ファイルから値を取得する
+    with open(file_path, 'r') as f:
+        config = yaml.safe_load(f)
+        print(f"Read robot config from {file_path}")
+    return config
 
 def generate_launch_description():
-    declare_arg_robot_id = DeclareLaunchArgument(
-        'id', default_value='11',
-        description=('Set own ID.')
-    )
-    push_ns = PushRosNamespace(['robot', LaunchConfiguration('id')])
+    # configからRobot IDを取得
+    config = get_configuration_from_file(DEFAULT_FILE_PATH)
+    robot_id = config['robot_id']
+
+    push_ns = PushRosNamespace(['robot', str(robot_id)])
 
     gpio_config = os.path.join(
         get_package_share_directory('frootspi_hardware'),
@@ -41,7 +54,7 @@ def generate_launch_description():
 
     container = ComposableNodeContainer(
         name='frootspi_container',
-        namespace=['robot', LaunchConfiguration('id')],
+        namespace=['robot', str(robot_id)],
         package='rclcpp_components',
         executable='component_container',  # component_container_mtはmulti threads
         sigterm_timeout='20',  # 終了時の放電時間だけCtrl+C入力後の猶予を設ける
@@ -100,7 +113,6 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
-        declare_arg_robot_id,
         push_ns,
         start_pigpiod,
         start_socket_can0,
