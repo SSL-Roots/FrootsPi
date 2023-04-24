@@ -9,15 +9,10 @@ if [ -f ${ENVFILE} ]; then
     source ${ENVFILE}
     export ROS_DOMAIN_ID=${ROS_DOMAIN_ID_VALUE}
 
-    # IPアドレスからロボットIDを取得
-    # IPアドレスの下2ケタがIDと対応している
-    IFACE="wlan0"
-    IP_ADDRESS=$(/sbin/ip -f inet -o addr show "${IFACE}" | cut -d\  -f 7 | cut -d/ -f 1)
-    ROBOT_ID=`echo ${IP_ADDRESS: -2:2} | sed -e 's/^0//g'`
-
     echo "ROS2 Launching..."
     #roslaunch実行
-    exec ros2 launch frootspi_examples robot.launch.py id:=${ROBOT_ID}
+    sleep 1 # wait for pigpiod
+    exec ros2 launch frootspi_examples robot.launch.py
 else
     echo "There is no ${ENVFILE}"
 fi
