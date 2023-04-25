@@ -35,15 +35,13 @@
 #include "frootspi_msgs/srv/set_kicker_charging.hpp"
 #include "frootspi_msgs/srv/set_lcd_text.hpp"
 #include "rclcpp/rclcpp.hpp"
-#include "rclcpp_lifecycle/lifecycle_node.hpp"
-#include "rclcpp_lifecycle/lifecycle_publisher.hpp"
 #include "sensor_msgs/msg/imu.hpp"
 #include "std_srvs/srv/set_bool.hpp"
 
 namespace frootspi_hardware
 {
 
-class Driver : public rclcpp_lifecycle::LifecycleNode
+class Driver : public rclcpp::Node
 {
 public:
   FROOTSPI_HARDWARE_PUBLIC
@@ -76,30 +74,19 @@ private:
     const std_srvs::srv::SetBool::Request::SharedPtr request,
     std_srvs::srv::SetBool::Response::SharedPtr response);
 
-  rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
-  on_configure(const rclcpp_lifecycle::State &);
-  rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
-  on_activate(const rclcpp_lifecycle::State &);
-  rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
-  on_deactivate(const rclcpp_lifecycle::State &);
-  rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
-  on_cleanup(const rclcpp_lifecycle::State &);
-  rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
-  on_shutdown(const rclcpp_lifecycle::State &);
-
-  std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<frootspi_msgs::msg::BallDetection>>
+  std::shared_ptr<rclcpp::Publisher<frootspi_msgs::msg::BallDetection>>
   pub_ball_detection_;
-  std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<frootspi_msgs::msg::BatteryVoltage>>
+  std::shared_ptr<rclcpp::Publisher<frootspi_msgs::msg::BatteryVoltage>>
   pub_battery_voltage_;
-  std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<frootspi_msgs::msg::BatteryVoltage>>
+  std::shared_ptr<rclcpp::Publisher<frootspi_msgs::msg::BatteryVoltage>>
   pub_ups_voltage_;
-  std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<frootspi_msgs::msg::BatteryVoltage>>
+  std::shared_ptr<rclcpp::Publisher<frootspi_msgs::msg::BatteryVoltage>>
   pub_kicker_voltage_;
-  std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<frootspi_msgs::msg::SwitchesState>>
+  std::shared_ptr<rclcpp::Publisher<frootspi_msgs::msg::SwitchesState>>
   pub_switches_state_;
-  std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<frootspi_msgs::msg::WheelVelocities>>
+  std::shared_ptr<rclcpp::Publisher<frootspi_msgs::msg::WheelVelocities>>
   pub_present_wheel_velocities_;
-  std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<sensor_msgs::msg::Imu>> pub_imu_;
+  std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::Imu>> pub_imu_;
 
   std::shared_ptr<rclcpp::Subscription<frootspi_msgs::msg::DribblePower>> sub_dribble_power_;
   std::shared_ptr<rclcpp::Subscription<frootspi_msgs::msg::WheelVelocities>>
