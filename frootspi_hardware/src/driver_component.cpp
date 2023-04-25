@@ -92,7 +92,7 @@ Driver::Driver(const rclcpp::NodeOptions & options)
 
   if (pi_ < 0) {
     RCLCPP_ERROR(this->get_logger(), "Failed to connect pigpiod.");
-    return CallbackReturn::FAILURE;
+    throw std::runtime_error("Failed to connect pigpiod.");
   }
 
   declare_parameter("gpio_ball_sensor", 6);
@@ -106,12 +106,12 @@ Driver::Driver(const rclcpp::NodeOptions & options)
 
   if (!io_expander_.open(pi_)) {
     RCLCPP_ERROR(this->get_logger(), "Failed to connect IO expander.");
-    return CallbackReturn::FAILURE;
+    throw std::runtime_error("Failed to connect IO expander.");
   }
 
   if (!battery_monitor_.open(pi_)) {
     RCLCPP_ERROR(this->get_logger(), "Failed to connect Battery Monitor.");
-    return CallbackReturn::FAILURE;
+    throw std::runtime_error("Failed to connect Battery Monitor.");
   }
 
   // if (!lcd_driver_.open(pi_)) {
@@ -122,7 +122,7 @@ Driver::Driver(const rclcpp::NodeOptions & options)
 
   if (!capacitor_monitor_.open(pi_)) {
     RCLCPP_ERROR(this->get_logger(), "Failed to connect Capacitor Monitor.");
-    return CallbackReturn::FAILURE;
+    throw std::runtime_error("Failed to connect Capacitor Monitor.");
   }
 
   // if (!front_display_communicator_.open(pi_)) {
@@ -132,7 +132,7 @@ Driver::Driver(const rclcpp::NodeOptions & options)
 
   if (!wheel_controller_.device_open()) {
     RCLCPP_ERROR(this->get_logger(), "Failed to connect wheel controller.");
-    return CallbackReturn::FAILURE;
+    throw std::runtime_error("Failed to connect wheel controller.");
   }
 
   set_mode(pi_, GPIO_SHUTDOWN_SWITCH, PI_INPUT);
