@@ -16,9 +16,6 @@ import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import ExecuteProcess
-from launch.actions import RegisterEventHandler
-from launch.event_handlers import OnProcessExit
-from launch.event_handlers import OnProcessStart
 from launch_ros.actions import ComposableNodeContainer
 from launch_ros.actions import PushRosNamespace
 from launch_ros.descriptions import ComposableNode
@@ -92,32 +89,8 @@ def generate_launch_description():
         output='screen',
     )
 
-    configure_hardware_node = ExecuteProcess(
-        cmd=[['sleep 5 && ros2 lifecycle set robot', str(robot_id), '/hardware_driver configure']],
-        shell=True,
-        output='screen',
-    )
-
-    activate_hardware_node = ExecuteProcess(
-        cmd=[['ros2 lifecycle set robot', str(robot_id), '/hardware_driver activate']],
-        shell=True,
-        output='screen',
-    )
-
     return LaunchDescription([
         push_ns,
         start_socket_can0,
-        RegisterEventHandler(
-            event_handler=OnProcessStart(
-                target_action=container,
-                on_start=[configure_hardware_node],
-            )
-        ),
-        RegisterEventHandler(
-            event_handler=OnProcessExit(
-                target_action=configure_hardware_node,
-                on_exit=[activate_hardware_node],
-            )
-        ),
         container
         ])
