@@ -11,7 +11,6 @@ if [ -f ${ENVFILE} ]; then
 
     echo "ROS2 Launching..."
     #roslaunch実行
-    sleep 1 # wait for pigpiod
     exec ros2 launch frootspi_examples robot.launch.py
 else
     echo "There is no ${ENVFILE}"
