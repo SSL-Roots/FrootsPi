@@ -26,13 +26,10 @@
 #include <vector>
 
 #include "frootspi_hardware/driver_component.hpp"
-#include "lifecycle_msgs/srv/change_state.hpp"
-#include "lifecycle_msgs/msg/state.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/int16.hpp"
 
 using namespace std::chrono_literals;
-using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 
 namespace frootspi_hardware
 {
@@ -51,17 +48,145 @@ static const int GPIO_CENTER_LED = 14;
 static const int GPIO_RIGHT_LED = 4;
 
 Driver::Driver(const rclcpp::NodeOptions & options)
-: rclcpp_lifecycle::LifecycleNode("hardware_driver", options),
+: rclcpp::Node("hardware_driver", options),
   pi_(-1), enable_kicker_charging_(false), discharge_kick_count_(0)
 {
+  using namespace std::placeholders;  // for _1, _2, _3...
+
+  // GPIOを定期的にread / writeするためのタイマー
+  polling_timer_ = create_wall_timer(1ms, std::bind(&Driver::on_polling_timer, this));
+  polling_timer_->cancel();  // ノードがActiveになるまでタイマーオフ
+  // コンデンサ放電時に使うタイマー
+  discharge_kicker_timer_ =
+    create_wall_timer(500ms, std::bind(&Driver::on_discharge_kicker_timer, this));
+  discharge_kicker_timer_->cancel();  // 放電処理が始まるまでタイマーオフ
+
+  pub_ball_detection_ = create_publisher<frootspi_msgs::msg::BallDetection>("ball_detection", 1);
+  pub_battery_voltage_ = create_publisher<frootspi_msgs::msg::BatteryVoltage>("battery_voltage", 1);
+  pub_ups_voltage_ = create_publisher<frootspi_msgs::msg::BatteryVoltage>("ups_voltage", 1);
+  pub_kicker_voltage_ = create_publisher<frootspi_msgs::msg::BatteryVoltage>("kicker_voltage", 1);
+  pub_switches_state_ = create_publisher<frootspi_msgs::msg::SwitchesState>("switches_state", 1);
+  pub_present_wheel_velocities_ = create_publisher<frootspi_msgs::msg::WheelVelocities>(
+    "present_wheel_velocities", 1);
+  pub_imu_ = create_publisher<sensor_msgs::msg::Imu>("imu", 1);
+
+  sub_dribble_power_ = create_subscription<frootspi_msgs::msg::DribblePower>(
+    "dribble_power", 1, std::bind(&Driver::callback_dribble_power, this, _1));
+  sub_target_wheel_velocities_ = create_subscription<frootspi_msgs::msg::WheelVelocities>(
+    "target_wheel_velocities", 1, std::bind(&Driver::callback_wheel_velocities, this, _1));
+
+  srv_kick_ =
+    create_service<frootspi_msgs::srv::Kick>("kick", std::bind(&Driver::on_kick, this, _1, _2));
+  srv_set_kicker_charging_ = create_service<frootspi_msgs::srv::SetKickerCharging>(
+    "set_kicker_charging", std::bind(&Driver::on_set_kicker_charging, this, _1, _2));
+  // srv_set_lcd_text_ = create_service<frootspi_msgs::srv::SetLCDText>(
+  //   "set_lcd_text", std::bind(&Driver::on_set_lcd_text, this, _1, _2));
+  srv_set_left_led_ = create_service<std_srvs::srv::SetBool>(
+    "set_left_led", std::bind(&Driver::on_set_left_led, this, _1, _2));
+  srv_set_center_led_ = create_service<std_srvs::srv::SetBool>(
+    "set_center_led", std::bind(&Driver::on_set_center_led, this, _1, _2));
+  srv_set_right_led_ = create_service<std_srvs::srv::SetBool>(
+    "set_right_led", std::bind(&Driver::on_set_right_led, this, _1, _2));
+
+  pi_ = pigpio_start(NULL, NULL);
+
+  if (pi_ < 0) {
+    RCLCPP_ERROR(this->get_logger(), "Failed to connect pigpiod.");
+    throw std::runtime_error("Failed to connect pigpiod.");
+  }
+
+  declare_parameter("gpio_ball_sensor", 6);
+  gpio_ball_sensor_ = get_parameter("gpio_ball_sensor").get_value<int>();
+
+
+  // add pigpio port setting
+  // ball sensor setup
+  set_mode(pi_, gpio_ball_sensor_, PI_INPUT);
+  set_pull_up_down(pi_, gpio_ball_sensor_, PI_PUD_UP);
+
+  if (!io_expander_.open(pi_)) {
+    RCLCPP_ERROR(this->get_logger(), "Failed to connect IO expander.");
+    throw std::runtime_error("Failed to connect IO expander.");
+  }
+
+  if (!battery_monitor_.open(pi_)) {
+    RCLCPP_ERROR(this->get_logger(), "Failed to connect Battery Monitor.");
+    throw std::runtime_error("Failed to connect Battery Monitor.");
+  }
+
+  // if (!lcd_driver_.open(pi_)) {
+  //   RCLCPP_ERROR(this->get_logger(), "Failed to connect LCD Driver.");
+  //   return CallbackReturn::FAILURE;
+  // }
+  // lcd_driver_.write_texts("FrootsPi", "ﾌﾙｰﾂﾊﾟｲ!");
+
+  if (!capacitor_monitor_.open(pi_)) {
+    RCLCPP_ERROR(this->get_logger(), "Failed to connect Capacitor Monitor.");
+    throw std::runtime_error("Failed to connect Capacitor Monitor.");
+  }
+
+  // if (!front_display_communicator_.open(pi_)) {
+  //   RCLCPP_ERROR(this->get_logger(), "Failed to connect Front Dislplay Communicator.");
+  //   return CallbackReturn::FAILURE;
+  // }
+
+  if (!wheel_controller_.device_open()) {
+    RCLCPP_ERROR(this->get_logger(), "Failed to connect wheel controller.");
+    throw std::runtime_error("Failed to connect wheel controller.");
+  }
+
+  set_mode(pi_, GPIO_SHUTDOWN_SWITCH, PI_INPUT);
+
+  // dribbler setup
+  set_mode(pi_, GPIO_DRIBBLE_PWM, PI_OUTPUT);
+  set_PWM_frequency(pi_, GPIO_DRIBBLE_PWM, DRIBBLE_PWM_FREQUENCY);
+  set_PWM_range(pi_, GPIO_DRIBBLE_PWM, DRIBBLE_PWM_DUTY_CYCLE);
+  gpio_write(pi_, GPIO_DRIBBLE_PWM, PI_HIGH);  // 負論理のためHighでモータオフ
+
+  // kicker setup
+  set_mode(pi_, GPIO_KICK_STRAIGHT, PI_OUTPUT);
+  gpio_write(pi_, GPIO_KICK_STRAIGHT, PI_LOW);
+  set_mode(pi_, GPIO_KICK_CHIP, PI_OUTPUT);
+  gpio_write(pi_, GPIO_KICK_CHIP, PI_LOW);
+  set_mode(pi_, GPIO_KICK_SUPPLY_POWER, PI_OUTPUT);
+  gpio_write(pi_, GPIO_KICK_SUPPLY_POWER, PI_LOW);
+  set_mode(pi_, GPIO_KICK_ENABLE_CHARGE, PI_OUTPUT);
+  gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_LOW);
+  set_mode(pi_, GPIO_KICK_CHARGE_COMPLETE, PI_INPUT);
+  set_pull_up_down(pi_, GPIO_KICK_CHARGE_COMPLETE, PI_PUD_UP);  // 外部プルアップあり
+
+  // led setup
+  set_mode(pi_, GPIO_CENTER_LED, PI_OUTPUT);
+  gpio_write(pi_, GPIO_CENTER_LED, PI_LOW);
+  set_mode(pi_, GPIO_RIGHT_LED, PI_OUTPUT);
+  gpio_write(pi_, GPIO_RIGHT_LED, PI_LOW);
+
+  // 通信タイムアウト検知用のタイマー
+  steady_clock_ = rclcpp::Clock(RCL_STEADY_TIME);
+  sub_wheel_timestamp_ = steady_clock_.now();
+  timeout_has_printed_ = false;
+
+  // polling timer reset 
+  polling_timer_->reset();
+
+  gpio_write(pi_, GPIO_KICK_SUPPLY_POWER, PI_HIGH);
 }
 
 Driver::~Driver()
 {
+  polling_timer_->cancel();
+
   gpio_write(pi_, GPIO_DRIBBLE_PWM, PI_HIGH);  // 負論理のためHighでモータオフ
   // lcd_driver_.write_texts("ROS 2", "SHUTDOWN");
   gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_LOW);
   gpio_write(pi_, GPIO_KICK_SUPPLY_POWER, PI_LOW);
+
+  io_expander_.close();
+  capacitor_monitor_.close();
+  battery_monitor_.close();
+  lcd_driver_.close();
+  front_display_communicator_.close();
+
   pigpio_stop(pi_);
 }
 
@@ -264,31 +389,23 @@ void Driver::on_set_kicker_charging(
   const frootspi_msgs::srv::SetKickerCharging::Request::SharedPtr request,
   frootspi_msgs::srv::SetKickerCharging::Response::SharedPtr response)
 {
-  if (this->get_current_state().id() == lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE) {
-    // キッカーの充電はキック処理時にON/OFFされるので、
-    // enable_kicker_charging_ 変数で充電フラグを管理する
-    if (request->start_charging) {
-      gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_HIGH);
-      enable_kicker_charging_ = true;
-      RCLCPP_INFO(this->get_logger(), "キッカーの充電開始.");
-      response->message = "充電を開始しました";
-      front_indicate_data_.Parameter.ChargeReq = true;
-    } else {
-      gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_LOW);
-      enable_kicker_charging_ = false;
-      RCLCPP_INFO(this->get_logger(), "キッカーの充電停止.");
-      response->message = "充電を停止しました";
-      front_indicate_data_.Parameter.ChargeReq = false;
-    }
-
-    response->success = true;
+  // キッカーの充電はキック処理時にON/OFFされるので、
+  // enable_kicker_charging_ 変数で充電フラグを管理する
+  if (request->start_charging) {
+    gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_HIGH);
+    enable_kicker_charging_ = true;
+    RCLCPP_INFO(this->get_logger(), "キッカーの充電開始.");
+    response->message = "充電を開始しました";
+    front_indicate_data_.Parameter.ChargeReq = true;
   } else {
     gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_LOW);
     enable_kicker_charging_ = false;
-
-    response->success = false;
-    response->message = "ノードがアクティブではありません。安全のため充電を停止しました。";
+    RCLCPP_INFO(this->get_logger(), "キッカーの充電停止.");
+    response->message = "充電を停止しました";
+    front_indicate_data_.Parameter.ChargeReq = false;
   }
+
+  response->success = true;
 }
 
 // void Driver::on_set_lcd_text(
@@ -343,213 +460,6 @@ void Driver::on_set_right_led(
   }
 }
 
-CallbackReturn Driver::on_configure(const rclcpp_lifecycle::State &)
-{
-  using namespace std::placeholders;  // for _1, _2, _3...
-
-  RCLCPP_INFO(this->get_logger(), "on_configure() is called.");
-
-  // GPIOを定期的にread / writeするためのタイマー
-  polling_timer_ = create_wall_timer(1ms, std::bind(&Driver::on_polling_timer, this));
-  polling_timer_->cancel();  // ノードがActiveになるまでタイマーオフ
-  // コンデンサ放電時に使うタイマー
-  discharge_kicker_timer_ =
-    create_wall_timer(500ms, std::bind(&Driver::on_discharge_kicker_timer, this));
-  discharge_kicker_timer_->cancel();  // 放電処理が始まるまでタイマーオフ
-
-  pub_ball_detection_ = create_publisher<frootspi_msgs::msg::BallDetection>("ball_detection", 1);
-  pub_battery_voltage_ = create_publisher<frootspi_msgs::msg::BatteryVoltage>("battery_voltage", 1);
-  pub_ups_voltage_ = create_publisher<frootspi_msgs::msg::BatteryVoltage>("ups_voltage", 1);
-  pub_kicker_voltage_ = create_publisher<frootspi_msgs::msg::BatteryVoltage>("kicker_voltage", 1);
-  pub_switches_state_ = create_publisher<frootspi_msgs::msg::SwitchesState>("switches_state", 1);
-  pub_present_wheel_velocities_ = create_publisher<frootspi_msgs::msg::WheelVelocities>(
-    "present_wheel_velocities", 1);
-  pub_imu_ = create_publisher<sensor_msgs::msg::Imu>("imu", 1);
-
-  sub_dribble_power_ = create_subscription<frootspi_msgs::msg::DribblePower>(
-    "dribble_power", 1, std::bind(&Driver::callback_dribble_power, this, _1));
-  sub_target_wheel_velocities_ = create_subscription<frootspi_msgs::msg::WheelVelocities>(
-    "target_wheel_velocities", 1, std::bind(&Driver::callback_wheel_velocities, this, _1));
-
-  srv_kick_ =
-    create_service<frootspi_msgs::srv::Kick>("kick", std::bind(&Driver::on_kick, this, _1, _2));
-  srv_set_kicker_charging_ = create_service<frootspi_msgs::srv::SetKickerCharging>(
-    "set_kicker_charging", std::bind(&Driver::on_set_kicker_charging, this, _1, _2));
-  // srv_set_lcd_text_ = create_service<frootspi_msgs::srv::SetLCDText>(
-  //   "set_lcd_text", std::bind(&Driver::on_set_lcd_text, this, _1, _2));
-  srv_set_left_led_ = create_service<std_srvs::srv::SetBool>(
-    "set_left_led", std::bind(&Driver::on_set_left_led, this, _1, _2));
-  srv_set_center_led_ = create_service<std_srvs::srv::SetBool>(
-    "set_center_led", std::bind(&Driver::on_set_center_led, this, _1, _2));
-  srv_set_right_led_ = create_service<std_srvs::srv::SetBool>(
-    "set_right_led", std::bind(&Driver::on_set_right_led, this, _1, _2));
-
-  pi_ = pigpio_start(NULL, NULL);
-
-  if (pi_ < 0) {
-    RCLCPP_ERROR(this->get_logger(), "Failed to connect pigpiod.");
-    return CallbackReturn::FAILURE;
-  }
-
-  declare_parameter("gpio_ball_sensor", 6);
-  gpio_ball_sensor_ = get_parameter("gpio_ball_sensor").get_value<int>();
-
-
-  // add pigpio port setting
-  // ball sensor setup
-  set_mode(pi_, gpio_ball_sensor_, PI_INPUT);
-  set_pull_up_down(pi_, gpio_ball_sensor_, PI_PUD_UP);
-
-  if (!io_expander_.open(pi_)) {
-    RCLCPP_ERROR(this->get_logger(), "Failed to connect IO expander.");
-    return CallbackReturn::FAILURE;
-  }
-
-  if (!battery_monitor_.open(pi_)) {
-    RCLCPP_ERROR(this->get_logger(), "Failed to connect Battery Monitor.");
-    return CallbackReturn::FAILURE;
-  }
-
-  // if (!lcd_driver_.open(pi_)) {
-  //   RCLCPP_ERROR(this->get_logger(), "Failed to connect LCD Driver.");
-  //   return CallbackReturn::FAILURE;
-  // }
-  // lcd_driver_.write_texts("FrootsPi", "ﾌﾙｰﾂﾊﾟｲ!");
-
-  if (!capacitor_monitor_.open(pi_)) {
-    RCLCPP_ERROR(this->get_logger(), "Failed to connect Capacitor Monitor.");
-    return CallbackReturn::FAILURE;
-  }
-
-  // if (!front_display_communicator_.open(pi_)) {
-  //   RCLCPP_ERROR(this->get_logger(), "Failed to connect Front Dislplay Communicator.");
-  //   return CallbackReturn::FAILURE;
-  // }
-
-  if (!wheel_controller_.device_open()) {
-    RCLCPP_ERROR(this->get_logger(), "Failed to connect wheel controller.");
-    return CallbackReturn::FAILURE;
-  }
-
-  set_mode(pi_, GPIO_SHUTDOWN_SWITCH, PI_INPUT);
-
-  // dribbler setup
-  set_mode(pi_, GPIO_DRIBBLE_PWM, PI_OUTPUT);
-  set_PWM_frequency(pi_, GPIO_DRIBBLE_PWM, DRIBBLE_PWM_FREQUENCY);
-  set_PWM_range(pi_, GPIO_DRIBBLE_PWM, DRIBBLE_PWM_DUTY_CYCLE);
-  gpio_write(pi_, GPIO_DRIBBLE_PWM, PI_HIGH);  // 負論理のためHighでモータオフ
-
-  // kicker setup
-  set_mode(pi_, GPIO_KICK_STRAIGHT, PI_OUTPUT);
-  gpio_write(pi_, GPIO_KICK_STRAIGHT, PI_LOW);
-  set_mode(pi_, GPIO_KICK_CHIP, PI_OUTPUT);
-  gpio_write(pi_, GPIO_KICK_CHIP, PI_LOW);
-  set_mode(pi_, GPIO_KICK_SUPPLY_POWER, PI_OUTPUT);
-  gpio_write(pi_, GPIO_KICK_SUPPLY_POWER, PI_LOW);
-  set_mode(pi_, GPIO_KICK_ENABLE_CHARGE, PI_OUTPUT);
-  gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_LOW);
-  set_mode(pi_, GPIO_KICK_CHARGE_COMPLETE, PI_INPUT);
-  set_pull_up_down(pi_, GPIO_KICK_CHARGE_COMPLETE, PI_PUD_UP);  // 外部プルアップあり
-
-  // led setup
-  set_mode(pi_, GPIO_CENTER_LED, PI_OUTPUT);
-  gpio_write(pi_, GPIO_CENTER_LED, PI_LOW);
-  set_mode(pi_, GPIO_RIGHT_LED, PI_OUTPUT);
-  gpio_write(pi_, GPIO_RIGHT_LED, PI_LOW);
-
-  // 通信タイムアウト検知用のタイマー
-  steady_clock_ = rclcpp::Clock(RCL_STEADY_TIME);
-  sub_wheel_timestamp_ = steady_clock_.now();
-  timeout_has_printed_ = false;
-
-  return CallbackReturn::SUCCESS;
-}
-
-CallbackReturn Driver::on_activate(const rclcpp_lifecycle::State &)
-{
-  RCLCPP_INFO(this->get_logger(), "on_activate() is called.");
-
-  pub_ball_detection_->on_activate();
-  pub_battery_voltage_->on_activate();
-  pub_ups_voltage_->on_activate();
-  pub_kicker_voltage_->on_activate();
-  pub_switches_state_->on_activate();
-  pub_present_wheel_velocities_->on_activate();
-  pub_imu_->on_activate();
-
-  polling_timer_->reset();
-
-  gpio_write(pi_, GPIO_KICK_SUPPLY_POWER, PI_HIGH);
-
-  return CallbackReturn::SUCCESS;
-}
-
-CallbackReturn Driver::on_deactivate(const rclcpp_lifecycle::State &)
-{
-  RCLCPP_INFO(this->get_logger(), "on_deactivate() is called.");
-
-  pub_ball_detection_->on_deactivate();
-  pub_battery_voltage_->on_deactivate();
-  pub_ups_voltage_->on_deactivate();
-  pub_kicker_voltage_->on_deactivate();
-  pub_switches_state_->on_deactivate();
-  pub_present_wheel_velocities_->on_deactivate();
-  pub_imu_->on_deactivate();
-  polling_timer_->cancel();
-
-  gpio_write(pi_, GPIO_DRIBBLE_PWM, PI_HIGH);  // 負論理のためHighでモータオフ
-
-  gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_LOW);
-  gpio_write(pi_, GPIO_KICK_SUPPLY_POWER, PI_LOW);
-
-  return CallbackReturn::SUCCESS;
-}
-
-CallbackReturn Driver::on_cleanup(const rclcpp_lifecycle::State &)
-{
-  RCLCPP_INFO(this->get_logger(), "on_cleanup() is called.");
-
-  pub_ball_detection_.reset();
-  pub_battery_voltage_.reset();
-  pub_ups_voltage_.reset();
-  pub_kicker_voltage_.reset();
-  pub_switches_state_.reset();
-  pub_present_wheel_velocities_.reset();
-  pub_imu_.reset();
-  polling_timer_.reset();
-
-  io_expander_.close();
-  capacitor_monitor_.close();
-  battery_monitor_.close();
-  lcd_driver_.close();
-  front_display_communicator_.close();
-  pigpio_stop(pi_);
-
-  return CallbackReturn::SUCCESS;
-}
-
-CallbackReturn Driver::on_shutdown(const rclcpp_lifecycle::State &)
-{
-  RCLCPP_INFO(this->get_logger(), "on_shutdown() is called.");
-
-  pub_ball_detection_.reset();
-  pub_battery_voltage_.reset();
-  pub_ups_voltage_.reset();
-  pub_kicker_voltage_.reset();
-  pub_switches_state_.reset();
-  pub_present_wheel_velocities_.reset();
-  pub_imu_.reset();
-  polling_timer_.reset();
-
-  io_expander_.close();
-  capacitor_monitor_.close();
-  battery_monitor_.close();
-  lcd_driver_.close();
-  front_display_communicator_.close();
-  pigpio_stop(pi_);
-
-  return CallbackReturn::SUCCESS;
-}
 
 }  // namespace frootspi_hardware
 
