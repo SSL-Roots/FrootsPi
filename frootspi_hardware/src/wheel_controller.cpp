@@ -96,8 +96,8 @@ bool WheelController::set_wheel_velocities(
   struct can_frame frame;
   frame.can_id = 0x1aa;
   frame.can_dlc = 8;
-  frame.data[0] = 0xFF & motor_vel_right;
-  frame.data[1] = 0xFF & (motor_vel_right >> 8);
+  frame.data[0] = 0xAA;
+  frame.data[1] = 0xAA;
   frame.data[2] = 0xFF & motor_vel_left;
   frame.data[3] = 0xFF & (motor_vel_left >> 8);
   frame.data[4] = 0xFF & motor_vel_center;
