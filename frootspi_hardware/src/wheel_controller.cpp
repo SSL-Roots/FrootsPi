@@ -105,12 +105,7 @@ bool WheelController::set_wheel_velocities(
   frame.data[6] = 0xFF & motor_vel_right;
   frame.data[7] = 0xFF & (motor_vel_right >> 8);
 
-  if (write(socket_, &frame, sizeof(struct can_frame)) != sizeof(struct can_frame)) {
-    RCLCPP_ERROR(LOGGER, "Failed to write.");
-    return false;
-  }
-
-  return true;
+  return send_can(frame);
 }
 
 bool WheelController::set_p_gain(const double gain_p)
