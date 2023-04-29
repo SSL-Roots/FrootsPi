@@ -30,7 +30,9 @@
 static const rclcpp::Logger LOGGER = rclcpp::get_logger("wheel_controller");
 
 WheelController::WheelController()
-: socket_(-1), gain_p_(0.0), gain_i_(0.0), gain_d_(0.0)
+: socket_(-1), gain_p_(0.0), gain_i_(0.0), gain_d_(0.0), 
+  vel_front_right_(0.0), vel_front_left_(0.0), vel_back_center_(0.0),
+  is_gain_setting_enabled_(false)
 {
 }
 
@@ -88,6 +90,14 @@ bool WheelController::set_wheel_velocities(
   constexpr double LSB = 10;  // 送信データの1bitが、モータ速度の10倍を表す
   constexpr double WHEEL_TO_MOTOR = GEAR_RAITO * LSB;
 
+  if (is_gain_setting_enabled_) {
+    return false;
+  }
+
+  vel_front_right_ = vel_front_right;
+  vel_front_left_ = vel_front_left;
+  vel_back_center_ = vel_back_center;
+
   int16_t motor_vel_right = vel_front_right * WHEEL_TO_MOTOR;
   int16_t motor_vel_left = vel_front_left * WHEEL_TO_MOTOR;
   int16_t motor_vel_center = vel_back_center * WHEEL_TO_MOTOR;
@@ -108,26 +118,67 @@ bool WheelController::set_wheel_velocities(
   return send_can(frame);
 }
 
+
+bool WheelController::is_motor_stopping()
+{
+  return (vel_front_right_ == 0.0) && (vel_front_left_ == 0.0) && (vel_back_center_ == 0.0);
+}
+
+
+bool WheelController::enable_gain_setting()
+{
+  // 車輪が停止していたらenableできる
+  if (!is_motor_stopping()) {
+    RCLCPP_ERROR(LOGGER, "車輪が停止していないため、ゲイン設定を有効にできません");
+    return false;
+  }
+
+  is_gain_setting_enabled_ = true;
+  return true;
+}
+
+bool WheelController::disable_gain_setting()
+{
+  is_gain_setting_enabled_ = false;
+  return true;
+}
+
 bool WheelController::set_p_gain(const double gain_p)
 {
+  if (!is_gain_setting_enabled_) {
+    return false;
+  }
+
   gain_p_ = gain_p;
   return send_pid_gain();
 }
 
 bool WheelController::set_i_gain(const double gain_i)
 {
+  if (!is_gain_setting_enabled_) {
+    return false;
+  }
+
   gain_i_ = gain_i;
   return send_pid_gain();
 }
 
 bool WheelController::set_d_gain(const double gain_d)
 {
+  if (!is_gain_setting_enabled_) {
+    return false;
+  }
+
   gain_d_ = gain_d;
   return send_pid_gain();
 }
 
 bool WheelController::set_pid_gain(const double gain_p, const double gain_i, const double gain_d)
 {
+  if (!is_gain_setting_enabled_) {
+    return false;
+  }
+
   gain_p_ = gain_p;
   gain_i_ = gain_i;
   gain_d_ = gain_d;
@@ -163,6 +214,10 @@ bool WheelController::send_can(const struct can_frame & frame)
     RCLCPP_ERROR(LOGGER, "Failed to write.");
     return false;
   }
+
+  // RCLCPP_INFO(LOGGER, "Send Can Data: %02x %02x %02x %02x %02x %02x %02x %02x",
+  //   frame.data[0], frame.data[1], frame.data[2], frame.data[3],
+  //   frame.data[4], frame.data[5], frame.data[6], frame.data[7]);
 
   return true;
 }

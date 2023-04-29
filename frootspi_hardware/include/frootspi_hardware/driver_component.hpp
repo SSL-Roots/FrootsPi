@@ -75,6 +75,9 @@ private:
   void on_set_right_led(
     const std_srvs::srv::SetBool::Request::SharedPtr request,
     std_srvs::srv::SetBool::Response::SharedPtr response);
+  void on_enable_gain_setting(
+    const std_srvs::srv::SetBool::Request::SharedPtr request,
+    std_srvs::srv::SetBool::Response::SharedPtr response);
 
   std::shared_ptr<rclcpp::Publisher<frootspi_msgs::msg::BallDetection>>
   pub_ball_detection_;
@@ -100,6 +103,7 @@ private:
   std::shared_ptr<rclcpp::Service<std_srvs::srv::SetBool>> srv_set_left_led_;
   std::shared_ptr<rclcpp::Service<std_srvs::srv::SetBool>> srv_set_center_led_;
   std::shared_ptr<rclcpp::Service<std_srvs::srv::SetBool>> srv_set_right_led_;
+  std::shared_ptr<rclcpp::Service<std_srvs::srv::SetBool>> srv_enable_gain_setting_;
 
   // Parameters
   rcl_interfaces::msg::SetParametersResult parametersCallback(

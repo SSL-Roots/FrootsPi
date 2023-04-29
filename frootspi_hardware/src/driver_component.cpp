@@ -88,6 +88,8 @@ Driver::Driver(const rclcpp::NodeOptions & options)
     "set_center_led", std::bind(&Driver::on_set_center_led, this, _1, _2));
   srv_set_right_led_ = create_service<std_srvs::srv::SetBool>(
     "set_right_led", std::bind(&Driver::on_set_right_led, this, _1, _2));
+  srv_enable_gain_setting_ = create_service<std_srvs::srv::SetBool>(
+    "enable_gain_setting", std::bind(&Driver::on_enable_gain_setting, this, _1, _2));
 
   // パラメータ作成
   this->declare_parameter("wheel_gain_p", 0.009);
@@ -203,24 +205,35 @@ rcl_interfaces::msg::SetParametersResult Driver::parametersCallback(
     const std::vector<rclcpp::Parameter> &parameters)
 {
   rcl_interfaces::msg::SetParametersResult result;
-  result.successful = true;
-  result.reason = "success";
   // Here update class attributes, do some actions, etc.
+
+  bool gain_setting_result = true;
 
   for (auto &&param : parameters)
   {
     if (param.get_name() == "wheel_gain_p")
     {
-      wheel_controller_.set_p_gain(param.as_double());
+      gain_setting_result = wheel_controller_.set_p_gain(param.as_double());
+      if (!gain_setting_result) break;
     }
     else if (param.get_name() == "wheel_gain_i")
     {
-      wheel_controller_.set_i_gain(param.as_double());
+      gain_setting_result = wheel_controller_.set_i_gain(param.as_double());
+      if (!gain_setting_result) break;
     }
     else if (param.get_name() == "wheel_gain_d")
     {
-      wheel_controller_.set_d_gain(param.as_double());
+      gain_setting_result = wheel_controller_.set_d_gain(param.as_double());
+      if (!gain_setting_result) break;
     }
+  }
+
+  if (gain_setting_result) {
+    result.successful = true;
+    result.reason = "success";
+  } else {
+    result.successful = false;
+    result.reason = "failed to set gain";
   }
 
   return result;
@@ -496,6 +509,41 @@ void Driver::on_set_right_led(
   }
 }
 
+void Driver::on_enable_gain_setting(
+    const std_srvs::srv::SetBool::Request::SharedPtr request,
+    std_srvs::srv::SetBool::Response::SharedPtr response)
+{
+  if (request->data)
+  {
+    // ゲイン設定を有効にする
+    bool result = wheel_controller_.enable_gain_setting();
+    if (result)
+    {
+      response->success = true;
+      response->message = "ゲイン設定モードを有効にしました。車輪は回せません。";
+    }
+    else
+    {
+      response->success = false;
+      response->message = "ゲイン設定モードを有効にできませんでした。";
+    }
+  }
+  else
+  {
+    // ゲイン設定を無効にする
+    bool result = wheel_controller_.disable_gain_setting();
+    if (result)
+    {
+      response->success = true;
+      response->message = "ゲイン設定モードを無効にしました。車輪が回せるようになります。";
+    }
+    else
+    {
+      response->success = false;
+      response->message = "ゲイン設定モードを無効にできませんでした。";
+    }
+  }
+}
 
 }  // namespace frootspi_hardware
 
