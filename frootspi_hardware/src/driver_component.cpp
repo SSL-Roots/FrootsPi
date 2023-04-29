@@ -207,33 +207,38 @@ rcl_interfaces::msg::SetParametersResult Driver::parametersCallback(
   rcl_interfaces::msg::SetParametersResult result;
   // Here update class attributes, do some actions, etc.
 
-  bool gain_setting_result = true;
+  WheelController::ErrorCode gain_setting_result = WheelController::ErrorCode::ERROR_NONE;
 
   for (auto &&param : parameters)
   {
     if (param.get_name() == "wheel_gain_p")
     {
       gain_setting_result = wheel_controller_.set_p_gain(param.as_double());
-      if (!gain_setting_result) break;
+      if (gain_setting_result != WheelController::ErrorCode::ERROR_NONE) break;
     }
     else if (param.get_name() == "wheel_gain_i")
     {
       gain_setting_result = wheel_controller_.set_i_gain(param.as_double());
-      if (!gain_setting_result) break;
+      if (gain_setting_result != WheelController::ErrorCode::ERROR_NONE) break;
     }
     else if (param.get_name() == "wheel_gain_d")
     {
       gain_setting_result = wheel_controller_.set_d_gain(param.as_double());
-      if (!gain_setting_result) break;
+      if (gain_setting_result != WheelController::ErrorCode::ERROR_NONE) break;
     }
   }
 
-  if (gain_setting_result) {
+  if (gain_setting_result == WheelController::ErrorCode::ERROR_NONE)
+  {
     result.successful = true;
     result.reason = "success";
-  } else {
+  }
+  else if (gain_setting_result == WheelController::ErrorCode::ERROR_GAIN_SETTING_MODE_DISABLED) {
     result.successful = false;
-    result.reason = "failed to set gain";
+    result.reason = "ゲイン設定モードが無効になっています";
+  } else if (gain_setting_result == WheelController::ErrorCode::ERROR_CAN_SEND_FAILED) {
+    result.successful = false;
+    result.reason = "CAN送信に失敗しました";
   }
 
   return result;
@@ -516,29 +521,25 @@ void Driver::on_enable_gain_setting(
   if (request->data)
   {
     // ゲイン設定を有効にする
-    bool result = wheel_controller_.enable_gain_setting();
-    if (result)
+    WheelController::ErrorCode error_code = wheel_controller_.enable_gain_setting();
+    if (error_code == WheelController::ErrorCode::ERROR_NONE)
     {
       response->success = true;
-      response->message = "ゲイン設定モードを有効にしました。車輪は回せません。";
-    }
-    else
-    {
+      response->message = "ゲイン設定モードを有効にしました。車輪が回らなくなります。";
+    } else if (error_code == WheelController::ErrorCode::ERROR_WHEELS_ARE_MOVING) {
       response->success = false;
-      response->message = "ゲイン設定モードを有効にできませんでした。";
+      response->message = "車輪が回転しているため、ゲイン設定モードを有効にできませんでした。";
     }
   }
   else
   {
     // ゲイン設定を無効にする
-    bool result = wheel_controller_.disable_gain_setting();
-    if (result)
+    WheelController::ErrorCode error_code = wheel_controller_.disable_gain_setting();
+    if (error_code == WheelController::ErrorCode::ERROR_NONE)
     {
       response->success = true;
-      response->message = "ゲイン設定モードを無効にしました。車輪が回せるようになります。";
-    }
-    else
-    {
+      response->message = "ゲイン設定モードを無効にしました。車輪が回せます。";
+    } else {
       response->success = false;
       response->message = "ゲイン設定モードを無効にできませんでした。";
     }

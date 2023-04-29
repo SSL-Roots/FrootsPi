@@ -18,21 +18,32 @@
 class WheelController
 {
 public:
+
+  enum ErrorCode
+  {
+    ERROR_NONE = 0,
+    ERROR_GAIN_SETTING_MODE_ENABLED,
+    ERROR_GAIN_SETTING_MODE_DISABLED,
+    ERROR_CAN_SEND_FAILED,
+    ERROR_WHEELS_ARE_MOVING,
+
+  };
+
   WheelController();
   ~WheelController();
 
   bool device_open();
   bool device_close();
-  bool set_wheel_velocities(
+  ErrorCode set_wheel_velocities(
     const double vel_front_right, const double vel_front_left,
     const double vel_back_center);
 
-  bool enable_gain_setting();
-  bool disable_gain_setting();
-  bool set_p_gain(const double gain_p);
-  bool set_i_gain(const double gain_i);
-  bool set_d_gain(const double gain_d);
-  bool set_pid_gain(
+  ErrorCode enable_gain_setting();
+  ErrorCode disable_gain_setting();
+  ErrorCode set_p_gain(const double gain_p);
+  ErrorCode set_i_gain(const double gain_i);
+  ErrorCode set_d_gain(const double gain_d);
+  ErrorCode set_pid_gain(
     const double gain_p, const double gain_i,
     const double gain_d);
 

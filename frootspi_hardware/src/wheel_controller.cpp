@@ -83,7 +83,7 @@ bool WheelController::device_close()
   return true;
 }
 
-bool WheelController::set_wheel_velocities(
+WheelController::ErrorCode WheelController::set_wheel_velocities(
   const double vel_front_right, const double vel_front_left, const double vel_back_center)
 {
   constexpr double GEAR_RAITO = 2.2 / 1.091;  // この数値はモタドラと帳尻を合わせること
@@ -91,7 +91,7 @@ bool WheelController::set_wheel_velocities(
   constexpr double WHEEL_TO_MOTOR = GEAR_RAITO * LSB;
 
   if (is_gain_setting_enabled_) {
-    return false;
+    return WheelController::ERROR_GAIN_SETTING_MODE_ENABLED;
   }
 
   vel_front_right_ = vel_front_right;
@@ -115,7 +115,13 @@ bool WheelController::set_wheel_velocities(
   frame.data[6] = 0xFF & motor_vel_right;
   frame.data[7] = 0xFF & (motor_vel_right >> 8);
 
-  return send_can(frame);
+  bool can_result;
+  can_result = send_can(frame);
+
+  if (!can_result) {
+    return WheelController::ERROR_CAN_SEND_FAILED;
+  }
+  return WheelController::ERROR_NONE;
 }
 
 
@@ -124,65 +130,133 @@ bool WheelController::is_motor_stopping()
   return (vel_front_right_ == 0.0) && (vel_front_left_ == 0.0) && (vel_back_center_ == 0.0);
 }
 
-
-bool WheelController::enable_gain_setting()
+/**
+ * @brief ゲイン設定モードを有効にする
+ * @return エラーコード
+ * @retval WheelController::ERROR_NONE 成功
+ * @retval WheelController::ERROR_WHEELS_ARE_MOVING 車輪が動いているため、ゲイン設定モードを有効にできない
+*/
+WheelController::ErrorCode WheelController::enable_gain_setting()
 {
   // 車輪が停止していたらenableできる
   if (!is_motor_stopping()) {
     RCLCPP_ERROR(LOGGER, "車輪が停止していないため、ゲイン設定を有効にできません");
-    return false;
+    return WheelController::ERROR_WHEELS_ARE_MOVING;
   }
 
   is_gain_setting_enabled_ = true;
-  return true;
+  return WheelController::ERROR_NONE;
 }
 
-bool WheelController::disable_gain_setting()
+/**
+ * @brief ゲイン設定モードを無効にする
+ * @return エラーコード
+ * @retval WheelController::ERROR_NONE 成功
+*/
+WheelController::ErrorCode WheelController::disable_gain_setting()
 {
   is_gain_setting_enabled_ = false;
-  return true;
+  return WheelController::ERROR_NONE;
 }
 
-bool WheelController::set_p_gain(const double gain_p)
+/**
+ * @brief Pゲインを設定する
+ * @param[in] gain_p Pゲイン
+ * @return エラーコード
+ * @retval WheelController::ERROR_NONE 成功
+ * @retval WheelController::ERROR_GAIN_SETTING_MODE_DISABLED ゲイン設定モードが無効のため、ゲインを設定できない
+ * @retval WheelController::ERROR_CAN_SEND_FAILED CAN送信に失敗した
+*/
+WheelController::ErrorCode WheelController::set_p_gain(const double gain_p)
 {
   if (!is_gain_setting_enabled_) {
-    return false;
+    return WheelController::ERROR_GAIN_SETTING_MODE_DISABLED;
   }
 
   gain_p_ = gain_p;
-  return send_pid_gain();
+  bool send_result;
+  send_result = send_pid_gain();
+
+  if (!send_result) {
+    return WheelController::ERROR_CAN_SEND_FAILED;
+  }
+  return WheelController::ERROR_NONE;
 }
 
-bool WheelController::set_i_gain(const double gain_i)
+/**
+ * @brief Iゲインを設定する
+ * @param[in] gain_i Iゲイン
+ * @return エラーコード
+ * @retval WheelController::ERROR_NONE 成功
+ * @retval WheelController::ERROR_GAIN_SETTING_MODE_DISABLED ゲイン設定モードが無効のため、ゲインを設定できない
+ * @retval WheelController::ERROR_CAN_SEND_FAILED CAN送信に失敗した
+*/
+WheelController::ErrorCode WheelController::set_i_gain(const double gain_i)
 {
   if (!is_gain_setting_enabled_) {
-    return false;
+    return WheelController::ERROR_GAIN_SETTING_MODE_DISABLED;
   }
 
   gain_i_ = gain_i;
-  return send_pid_gain();
+  bool send_result;
+  send_result = send_pid_gain();
+
+  if (!send_result) {
+    return WheelController::ERROR_CAN_SEND_FAILED;
+  }
+  return WheelController::ERROR_NONE;
 }
 
-bool WheelController::set_d_gain(const double gain_d)
+/**
+ * @brief Dゲインを設定する
+ * @param[in] gain_d Dゲイン
+ * @return エラーコード
+ * @retval WheelController::ERROR_NONE 成功
+ * @retval WheelController::ERROR_GAIN_SETTING_MODE_DISABLED ゲイン設定モードが無効のため、ゲインを設定できない
+ * @retval WheelController::ERROR_CAN_SEND_FAILED CAN送信に失敗した
+*/
+WheelController::ErrorCode WheelController::set_d_gain(const double gain_d)
 {
   if (!is_gain_setting_enabled_) {
-    return false;
+    return WheelController::ERROR_GAIN_SETTING_MODE_DISABLED;
   }
 
   gain_d_ = gain_d;
-  return send_pid_gain();
+  bool send_result;
+  send_result = send_pid_gain();
+
+  if (!send_result) {
+    return WheelController::ERROR_CAN_SEND_FAILED;
+  }
+  return WheelController::ERROR_NONE;
 }
 
-bool WheelController::set_pid_gain(const double gain_p, const double gain_i, const double gain_d)
+/**
+ * @brief PIDゲインを設定する
+ * @param[in] gain_p Pゲイン
+ * @param[in] gain_i Iゲイン
+ * @param[in] gain_d Dゲイン
+ * @return エラーコード
+ * @retval WheelController::ERROR_NONE 成功
+ * @retval WheelController::ERROR_GAIN_SETTING_MODE_DISABLED ゲイン設定モードが無効のため、ゲインを設定できない
+ * @retval WheelController::ERROR_CAN_SEND_FAILED CAN送信に失敗した
+*/
+WheelController::ErrorCode WheelController::set_pid_gain(const double gain_p, const double gain_i, const double gain_d)
 {
   if (!is_gain_setting_enabled_) {
-    return false;
+    return WheelController::ERROR_GAIN_SETTING_MODE_DISABLED;
   }
 
   gain_p_ = gain_p;
   gain_i_ = gain_i;
   gain_d_ = gain_d;
-  return send_pid_gain();
+  bool send_result;
+  send_result = send_pid_gain();
+
+  if (!send_result) {
+    return WheelController::ERROR_CAN_SEND_FAILED;
+  }
+  return WheelController::ERROR_NONE;
 }
 
 bool WheelController::send_pid_gain()
