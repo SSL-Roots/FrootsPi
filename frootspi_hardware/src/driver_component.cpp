@@ -47,6 +47,7 @@ static const int DRIBBLE_PWM_DUTY_CYCLE = 1e6 / DRIBBLE_PWM_FREQUENCY;  // usec
 static const int GPIO_CENTER_LED = 14;
 static const int GPIO_RIGHT_LED = 4;
 
+
 Driver::Driver(const rclcpp::NodeOptions & options)
 : rclcpp::Node("hardware_driver", options),
   pi_(-1), enable_kicker_charging_(false), discharge_kick_count_(0)
@@ -87,6 +88,14 @@ Driver::Driver(const rclcpp::NodeOptions & options)
     "set_center_led", std::bind(&Driver::on_set_center_led, this, _1, _2));
   srv_set_right_led_ = create_service<std_srvs::srv::SetBool>(
     "set_right_led", std::bind(&Driver::on_set_right_led, this, _1, _2));
+
+  // パラメータ作成
+  this->declare_parameter("wheel_gain_p", 0.009);
+  this->declare_parameter("wheel_gain_i", 0.001);
+  this->declare_parameter("wheel_gain_d", 0.001);
+
+  set_parameters_callback_handle_ = this->add_on_set_parameters_callback(
+      std::bind(&frootspi_hardware::Driver::parametersCallback, this, std::placeholders::_1));
 
   pi_ = pigpio_start(NULL, NULL);
 
@@ -188,6 +197,36 @@ Driver::~Driver()
   front_display_communicator_.close();
 
   pigpio_stop(pi_);
+}
+
+rcl_interfaces::msg::SetParametersResult Driver::parametersCallback(
+    const std::vector<rclcpp::Parameter> &parameters)
+{
+  rcl_interfaces::msg::SetParametersResult result;
+  result.successful = true;
+  result.reason = "success";
+  // Here update class attributes, do some actions, etc.
+
+  for (auto &&param : parameters)
+  {
+    if (param.get_name() == "wheel_gain_p")
+    {
+      // wheel_ctrl_p_gain_ = param.as_double(); // double型メンバ変数に代入
+      RCLCPP_INFO(this->get_logger(), "wheel_gain_p: %.6f", param.as_double());
+    }
+    else if (param.get_name() == "wheel_gain_i")
+    {
+      RCLCPP_INFO(this->get_logger(), "wheel_gain_i: %.6f", param.as_double());
+    }
+    else if (param.get_name() == "wheel_gain_d")
+    {
+      RCLCPP_INFO(this->get_logger(), "wheel_gain_d: %.6f", param.as_double());
+    }
+  }
+  // パラメータの出力
+  // RCLCPP_INFO(this->get_logger(), "Pgain: %.6f, Igain: %.6f, Dgain: %.6f", wheel_ctrl_p_gain_, wheel_ctrl_i_gain_, wheel_ctrl_d_gain_);
+
+  return result;
 }
 
 void Driver::on_polling_timer()

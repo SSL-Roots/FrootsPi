@@ -19,6 +19,8 @@
 #include <string>
 #include <vector>
 
+#include "rcl_interfaces/msg/set_parameters_result.hpp"
+
 #include "frootspi_hardware/visibility_control.h"
 #include "frootspi_hardware/io_expander.hpp"
 #include "frootspi_hardware/capacitor_monitor.hpp"
@@ -98,6 +100,12 @@ private:
   std::shared_ptr<rclcpp::Service<std_srvs::srv::SetBool>> srv_set_left_led_;
   std::shared_ptr<rclcpp::Service<std_srvs::srv::SetBool>> srv_set_center_led_;
   std::shared_ptr<rclcpp::Service<std_srvs::srv::SetBool>> srv_set_right_led_;
+
+  // Parameters
+  rcl_interfaces::msg::SetParametersResult parametersCallback(
+    const std::vector<rclcpp::Parameter> & parameters);
+  OnSetParametersCallbackHandle::SharedPtr set_parameters_callback_handle_;
+
 
   rclcpp::TimerBase::SharedPtr polling_timer_;
   rclcpp::TimerBase::SharedPtr discharge_kicker_timer_;
