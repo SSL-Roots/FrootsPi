@@ -211,20 +211,17 @@ rcl_interfaces::msg::SetParametersResult Driver::parametersCallback(
   {
     if (param.get_name() == "wheel_gain_p")
     {
-      // wheel_ctrl_p_gain_ = param.as_double(); // double型メンバ変数に代入
-      RCLCPP_INFO(this->get_logger(), "wheel_gain_p: %.6f", param.as_double());
+      wheel_controller_.set_p_gain(param.as_double());
     }
     else if (param.get_name() == "wheel_gain_i")
     {
-      RCLCPP_INFO(this->get_logger(), "wheel_gain_i: %.6f", param.as_double());
+      wheel_controller_.set_i_gain(param.as_double());
     }
     else if (param.get_name() == "wheel_gain_d")
     {
-      RCLCPP_INFO(this->get_logger(), "wheel_gain_d: %.6f", param.as_double());
+      wheel_controller_.set_d_gain(param.as_double());
     }
   }
-  // パラメータの出力
-  // RCLCPP_INFO(this->get_logger(), "Pgain: %.6f, Igain: %.6f, Dgain: %.6f", wheel_ctrl_p_gain_, wheel_ctrl_i_gain_, wheel_ctrl_d_gain_);
 
   return result;
 }

@@ -30,7 +30,7 @@
 static const rclcpp::Logger LOGGER = rclcpp::get_logger("wheel_controller");
 
 WheelController::WheelController()
-: socket_(-1)
+: socket_(-1), gain_p_(0.0), gain_i_(0.0), gain_d_(0.0)
 {
 }
 
@@ -112,3 +112,80 @@ bool WheelController::set_wheel_velocities(
 
   return true;
 }
+
+bool WheelController::set_p_gain(const double gain_p)
+{
+  gain_p_ = gain_p;
+  return send_pid_gain();
+}
+
+bool WheelController::set_i_gain(const double gain_i)
+{
+  gain_i_ = gain_i;
+  return send_pid_gain();
+}
+
+bool WheelController::set_d_gain(const double gain_d)
+{
+  gain_d_ = gain_d;
+  return send_pid_gain();
+}
+
+bool WheelController::set_pid_gain(const double gain_p, const double gain_i, const double gain_d)
+{
+  gain_p_ = gain_p;
+  gain_i_ = gain_i;
+  gain_d_ = gain_d;
+  return send_pid_gain();
+}
+
+bool WheelController::send_pid_gain()
+{
+  constexpr double COEFFICIENT = 1000000.0;
+
+  int16_t int_gain_p = (int16_t)constrain(gain_p_ * COEFFICIENT, 0.0, (double)__INT16_MAX__);
+  int16_t int_gain_i = (int16_t)constrain(gain_i_ * COEFFICIENT, 0.0, (double)__INT16_MAX__);
+  int16_t int_gain_d = (int16_t)constrain(gain_d_ * COEFFICIENT, 0.0, (double)__INT16_MAX__);
+
+  struct can_frame frame;
+  frame.can_id = 0x1aa;
+  frame.can_dlc = 8;
+  frame.data[0] = 0xBB;
+  frame.data[1] = 0xBB;
+  frame.data[2] = 0xFF & int_gain_p;
+  frame.data[3] = 0xFF & (int_gain_p >> 8);
+  frame.data[4] = 0xFF & int_gain_i;
+  frame.data[5] = 0xFF & (int_gain_i >> 8);
+  frame.data[6] = 0xFF & int_gain_d;
+  frame.data[7] = 0xFF & (int_gain_d >> 8);
+
+  return send_can(frame);
+}
+
+bool WheelController::send_can(const struct can_frame & frame)
+{
+  if (write(socket_, &frame, sizeof(struct can_frame)) != sizeof(struct can_frame)) {
+    RCLCPP_ERROR(LOGGER, "Failed to write.");
+    return false;
+  }
+
+  return true;
+}
+
+
+/**
+ * @brief 値をminとmaxの範囲に収める
+*/
+double WheelController::constrain(const double value, const double min, const double max)
+{
+  if (value < min) {
+    return min;
+  } else if (value > max) {
+    return max;
+  } else {
+    return value;
+  }
+}
+
+
+

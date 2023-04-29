@@ -27,8 +27,20 @@ public:
     const double vel_front_right, const double vel_front_left,
     const double vel_back_center);
 
+  bool set_p_gain(const double gain_p);
+  bool set_i_gain(const double gain_i);
+  bool set_d_gain(const double gain_d);
+  bool set_pid_gain(
+    const double gain_p, const double gain_i,
+    const double gain_d);
+
 private:
+  bool send_pid_gain();
+  bool send_can(const struct can_frame & frame);
+  double constrain(const double value, const double min, const double max);
+
   int socket_;
+  double gain_p_, gain_i_, gain_d_;
 };
 
 #endif  // FROOTSPI_HARDWARE__WHEEL_CONTROLLER_HPP_
