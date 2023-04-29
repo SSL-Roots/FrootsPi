@@ -30,8 +30,9 @@
 static const rclcpp::Logger LOGGER = rclcpp::get_logger("wheel_controller");
 
 WheelController::WheelController()
-: socket_(-1), gain_p_(0.0), gain_i_(0.0), gain_d_(0.0), 
+: socket_(-1),
   vel_front_right_(0.0), vel_front_left_(0.0), vel_back_center_(0.0),
+  gain_p_(0.0), gain_i_(0.0), gain_d_(0.0),
   is_gain_setting_enabled_(false)
 {
 }
