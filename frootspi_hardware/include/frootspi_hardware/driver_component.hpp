@@ -134,10 +134,13 @@ private:
 
   // sensor data store
   bool latest_ball_detection_;
-  float latest_battery_voltage_;
-  float latest_ups_voltage_;
-  float latest_kicker_voltage_;
-  frootspi_msgs::msg::SwitchesState latest_switches_state_;
+  bool latest_pushed_button0_;
+  bool latest_pushed_button1_;
+  bool latest_pushed_button2_;
+  bool latest_pushed_button3_;
+  bool latest_turned_on_dip0_;
+  bool latest_turned_on_dip1_;
+  bool latest_pushed_shutdown_;
 };
 
 }  // namespace frootspi_hardware

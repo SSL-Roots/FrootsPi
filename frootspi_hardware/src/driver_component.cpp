@@ -259,15 +259,39 @@ void Driver::on_high_rate_polling_timer()
   this->latest_ball_detection_ = ball_detection;
   front_indicate_data_.Parameter.BallSens = ball_detection;
 
-  // スイッチ状態をパブリッシュ
-  auto switches_state_msg = std::make_unique<frootspi_msgs::msg::SwitchesState>();
+  // スイッチ状態をRead 変化があった場合のみpublish
+  bool pushed_button0, pushed_button1, pushed_button2, pushed_button3, turned_on_dip0, turned_on_dip1;
   io_expander_.read(
-    switches_state_msg->pushed_button0, switches_state_msg->pushed_button1,
-    switches_state_msg->pushed_button2, switches_state_msg->pushed_button3,
-    switches_state_msg->turned_on_dip0, switches_state_msg->turned_on_dip1);
-  // シャットダウンスイッチは負論理なので、XORでビット反転させる
-  switches_state_msg->pushed_shutdown = gpio_read(pi_, GPIO_SHUTDOWN_SWITCH) ^ 1;
-  pub_switches_state_->publish(std::move(switches_state_msg));
+    pushed_button0, pushed_button1, pushed_button2, pushed_button3,
+    turned_on_dip0, turned_on_dip1);
+  bool pushed_shutdown = gpio_read(pi_, GPIO_SHUTDOWN_SWITCH) ^ 1;  // シャットダウンスイッチは負論理なので、XORでビット反転させる
+  if (pushed_button0 != this->latest_pushed_button0_ ||
+      pushed_button1 != this->latest_pushed_button1_ ||
+      pushed_button2 != this->latest_pushed_button2_ ||
+      pushed_button3 != this->latest_pushed_button3_ ||
+      turned_on_dip0 != this->latest_turned_on_dip0_ ||
+      turned_on_dip1 != this->latest_turned_on_dip1_ ||
+      pushed_shutdown != this->latest_pushed_shutdown_) 
+  {
+    auto switches_state_msg = std::make_unique<frootspi_msgs::msg::SwitchesState>();
+    switches_state_msg->pushed_button0 = pushed_button0;
+    switches_state_msg->pushed_button1 = pushed_button1;
+    switches_state_msg->pushed_button2 = pushed_button2;
+    switches_state_msg->pushed_button3 = pushed_button3;
+    switches_state_msg->turned_on_dip0 = turned_on_dip0;
+    switches_state_msg->turned_on_dip1 = turned_on_dip1;
+    switches_state_msg->pushed_shutdown = pushed_shutdown;
+    pub_switches_state_->publish(std::move(switches_state_msg));
+
+    // 情報更新
+    this->latest_pushed_button0_ = pushed_button0;
+    this->latest_pushed_button1_ = pushed_button1;
+    this->latest_pushed_button2_ = pushed_button2;
+    this->latest_pushed_button3_ = pushed_button3;
+    this->latest_turned_on_dip0_ = turned_on_dip0;
+    this->latest_turned_on_dip1_ = turned_on_dip1;
+    this->latest_pushed_shutdown_ = pushed_shutdown;
+  }
 
   // オムニホイール回転速度をパブリッシュ
   // TODO: implement
@@ -327,6 +351,7 @@ void Driver::on_low_rate_polling_timer()
   }
   pub_kicker_voltage_->publish(std::move(kicker_voltage_msg));
 }
+
 
 void Driver::on_discharge_kicker_timer()
 {
