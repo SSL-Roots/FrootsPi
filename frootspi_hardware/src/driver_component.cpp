@@ -181,6 +181,7 @@ Driver::Driver(const rclcpp::NodeOptions & options)
 
   // polling timer reset 
   high_rate_polling_timer_->reset();
+  low_rate_polling_timer_->reset();
 
   gpio_write(pi_, GPIO_KICK_SUPPLY_POWER, PI_HIGH);
 }
@@ -188,6 +189,7 @@ Driver::Driver(const rclcpp::NodeOptions & options)
 Driver::~Driver()
 {
   high_rate_polling_timer_->cancel();
+  low_rate_polling_timer_->cancel();
 
   gpio_write(pi_, GPIO_DRIBBLE_PWM, PI_HIGH);  // 負論理のためHighでモータオフ
   // lcd_driver_.write_texts("ROS 2", "SHUTDOWN");
