@@ -57,6 +57,8 @@ Driver::Driver(const rclcpp::NodeOptions & options)
   // GPIOを定期的にread / writeするためのタイマー
   high_rate_polling_timer_ = create_wall_timer(1ms, std::bind(&Driver::on_high_rate_polling_timer, this));
   high_rate_polling_timer_->cancel();  // ノードがActiveになるまでタイマーオフ
+  low_rate_polling_timer_ = create_wall_timer(1000ms, std::bind(&Driver::on_low_rate_polling_timer, this));
+  low_rate_polling_timer_->cancel();  // ノードがActiveになるまでタイマーオフ
   // コンデンサ放電時に使うタイマー
   discharge_kicker_timer_ =
     create_wall_timer(500ms, std::bind(&Driver::on_discharge_kicker_timer, this));
@@ -327,6 +329,12 @@ void Driver::on_high_rate_polling_timer()
   //   front_display_communicator_.send_data(&front_indicate_data_);
   //   front_display_prescaler_count_ = 0;
   // }
+}
+
+
+void Driver::on_low_rate_polling_timer()
+{
+
 }
 
 void Driver::on_discharge_kicker_timer()

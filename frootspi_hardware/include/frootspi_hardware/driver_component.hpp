@@ -54,6 +54,7 @@ public:
 
 private:
   void on_high_rate_polling_timer();
+  void on_low_rate_polling_timer();
   void on_discharge_kicker_timer();
   void callback_dribble_power(const frootspi_msgs::msg::DribblePower::SharedPtr msg);
   void callback_wheel_velocities(const frootspi_msgs::msg::WheelVelocities::SharedPtr msg);
@@ -111,7 +112,8 @@ private:
   OnSetParametersCallbackHandle::SharedPtr set_parameters_callback_handle_;
 
 
-  rclcpp::TimerBase::SharedPtr polling_timer_;
+  rclcpp::TimerBase::SharedPtr high_rate_polling_timer_;
+  rclcpp::TimerBase::SharedPtr low_rate_polling_timer_;
   rclcpp::TimerBase::SharedPtr discharge_kicker_timer_;
   rclcpp::Clock steady_clock_;
   rclcpp::Time sub_wheel_timestamp_;
@@ -130,8 +132,13 @@ private:
   int front_display_prescaler_count_;
   int capacitor_monitor_prescaler_count_;
   FrontIndicateData front_indicate_data_;
+
   // sensor data store
   bool latest_ball_detection_;
+  float latest_battery_voltage_;
+  float latest_ups_voltage_;
+  float latest_kicker_voltage_;
+  frootspi_msgs::msg::SwitchesState latest_switches_state_;
 };
 
 }  // namespace frootspi_hardware
