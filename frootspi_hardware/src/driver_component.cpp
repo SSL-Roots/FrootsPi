@@ -316,20 +316,16 @@ void Driver::on_low_rate_polling_timer()
   pub_ups_voltage_->publish(std::move(ups_voltage_msg));
 
   // キッカー（昇圧回路）電圧をパブリッシュ
-  capacitor_monitor_prescaler_count_++;
-  if(capacitor_monitor_prescaler_count_ > 50){
-    auto kicker_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
-    capacitor_monitor_.capacitor_info_read(
-      kicker_voltage_msg->voltage, kicker_voltage_msg->voltage_status);
-    front_indicate_data_.Parameter.CapVol = (unsigned char)(kicker_voltage_msg->voltage);
-    if(kicker_voltage_msg->voltage_status >= frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_OK){
-      front_indicate_data_.Parameter.CapacitorSta = true;
-    } else {
-      front_indicate_data_.Parameter.CapacitorSta = false;
-    }
-    pub_kicker_voltage_->publish(std::move(kicker_voltage_msg));
-    capacitor_monitor_prescaler_count_ = 0;
+  auto kicker_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
+  capacitor_monitor_.capacitor_info_read(
+    kicker_voltage_msg->voltage, kicker_voltage_msg->voltage_status);
+  front_indicate_data_.Parameter.CapVol = (unsigned char)(kicker_voltage_msg->voltage);
+  if(kicker_voltage_msg->voltage_status >= frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_OK){
+    front_indicate_data_.Parameter.CapacitorSta = true;
+  } else {
+    front_indicate_data_.Parameter.CapacitorSta = false;
   }
+  pub_kicker_voltage_->publish(std::move(kicker_voltage_msg));
 }
 
 void Driver::on_discharge_kicker_timer()
