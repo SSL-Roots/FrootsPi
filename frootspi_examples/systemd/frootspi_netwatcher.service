@@ -1,0 +1,20 @@
+[Unit]
+Description=Restart FrootsPi robot_launch service when network is reconnected
+Require=robot_launch.service
+After=local-fs.target
+After=robot_launch.service
+ConditionPathExists=/home/ubuntu/ros2_ws/src/FrootsPi/frootspi_examples/systemd
+
+[Service]
+ExecStart=/home/ubuntu/ros2_ws/src/FrootsPi/frootspi_examples/systemd/frootspi_netwatcher.sh
+ExecStop=/bin/kill ${MAINPID}
+Restart=on-failure
+StartLimitInterval=60
+StartLimitBurst=3
+KillMode=mixed
+Type=simple
+User=ubuntu
+Group=ubuntu
+
+[Install]
+WantedBy=multi-user.target
