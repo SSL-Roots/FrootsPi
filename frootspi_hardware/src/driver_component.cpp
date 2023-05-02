@@ -259,38 +259,6 @@ void Driver::on_high_rate_polling_timer()
   this->latest_ball_detection_ = ball_detection;
   front_indicate_data_.Parameter.BallSens = ball_detection;
 
-  // バッテリー電圧をパブリッシュ
-  auto battery_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
-  battery_monitor_.main_battery_info_read(
-    battery_voltage_msg->voltage, battery_voltage_msg->voltage_status);
-  front_indicate_data_.Parameter.BatVol = (unsigned char)(battery_voltage_msg->voltage*10);
-  // frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_FULL;
-  pub_battery_voltage_->publish(std::move(battery_voltage_msg));
-
-  // UPS(無停電電源装置)電圧をパブリッシュ
-  auto ups_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
-  battery_monitor_.sub_battery_info_read(
-    ups_voltage_msg->voltage, ups_voltage_msg->voltage_status);
-  // frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_TOO_LOW;
-  pub_ups_voltage_->publish(std::move(ups_voltage_msg));
-
-  // キッカー（昇圧回路）電圧をパブリッシュ
-  capacitor_monitor_prescaler_count_++;
-  if(capacitor_monitor_prescaler_count_ > 50){
-    auto kicker_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
-    capacitor_monitor_.capacitor_info_read(
-      kicker_voltage_msg->voltage, kicker_voltage_msg->voltage_status);
-    front_indicate_data_.Parameter.CapVol = (unsigned char)(kicker_voltage_msg->voltage);
-    if(kicker_voltage_msg->voltage_status >= frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_OK){
-      front_indicate_data_.Parameter.CapacitorSta = true;
-    } else {
-      front_indicate_data_.Parameter.CapacitorSta = false;
-    }
-    pub_kicker_voltage_->publish(std::move(kicker_voltage_msg));
-    capacitor_monitor_prescaler_count_ = 0;
-  }
-
-
   // スイッチ状態をパブリッシュ
   auto switches_state_msg = std::make_unique<frootspi_msgs::msg::SwitchesState>();
   io_expander_.read(
@@ -334,7 +302,34 @@ void Driver::on_high_rate_polling_timer()
 
 void Driver::on_low_rate_polling_timer()
 {
+  // バッテリー電圧をパブリッシュ
+  auto battery_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
+  battery_monitor_.main_battery_info_read(
+    battery_voltage_msg->voltage, battery_voltage_msg->voltage_status);
+  front_indicate_data_.Parameter.BatVol = (unsigned char)(battery_voltage_msg->voltage*10);
+  pub_battery_voltage_->publish(std::move(battery_voltage_msg));
 
+  // UPS(無停電電源装置)電圧をパブリッシュ
+  auto ups_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
+  battery_monitor_.sub_battery_info_read(
+    ups_voltage_msg->voltage, ups_voltage_msg->voltage_status);
+  pub_ups_voltage_->publish(std::move(ups_voltage_msg));
+
+  // キッカー（昇圧回路）電圧をパブリッシュ
+  capacitor_monitor_prescaler_count_++;
+  if(capacitor_monitor_prescaler_count_ > 50){
+    auto kicker_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
+    capacitor_monitor_.capacitor_info_read(
+      kicker_voltage_msg->voltage, kicker_voltage_msg->voltage_status);
+    front_indicate_data_.Parameter.CapVol = (unsigned char)(kicker_voltage_msg->voltage);
+    if(kicker_voltage_msg->voltage_status >= frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_OK){
+      front_indicate_data_.Parameter.CapacitorSta = true;
+    } else {
+      front_indicate_data_.Parameter.CapacitorSta = false;
+    }
+    pub_kicker_voltage_->publish(std::move(kicker_voltage_msg));
+    capacitor_monitor_prescaler_count_ = 0;
+  }
 }
 
 void Driver::on_discharge_kicker_timer()
