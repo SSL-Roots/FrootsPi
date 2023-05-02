@@ -47,6 +47,7 @@ static const int DRIBBLE_PWM_DUTY_CYCLE = 1e6 / DRIBBLE_PWM_FREQUENCY;  // usec
 static const int GPIO_CENTER_LED = 14;
 static const int GPIO_RIGHT_LED = 4;
 
+
 Driver::Driver(const rclcpp::NodeOptions & options)
 : rclcpp::Node("hardware_driver", options),
   pi_(-1), enable_kicker_charging_(false), discharge_kick_count_(0)
@@ -87,6 +88,16 @@ Driver::Driver(const rclcpp::NodeOptions & options)
     "set_center_led", std::bind(&Driver::on_set_center_led, this, _1, _2));
   srv_set_right_led_ = create_service<std_srvs::srv::SetBool>(
     "set_right_led", std::bind(&Driver::on_set_right_led, this, _1, _2));
+  srv_enable_gain_setting_ = create_service<std_srvs::srv::SetBool>(
+    "enable_gain_setting", std::bind(&Driver::on_enable_gain_setting, this, _1, _2));
+
+  // パラメータ作成
+  this->declare_parameter("wheel_gain_p", 0.009);
+  this->declare_parameter("wheel_gain_i", 0.001);
+  this->declare_parameter("wheel_gain_d", 0.001);
+
+  set_parameters_callback_handle_ = this->add_on_set_parameters_callback(
+      std::bind(&frootspi_hardware::Driver::parametersCallback, this, std::placeholders::_1));
 
   pi_ = pigpio_start(NULL, NULL);
 
@@ -188,6 +199,49 @@ Driver::~Driver()
   front_display_communicator_.close();
 
   pigpio_stop(pi_);
+}
+
+rcl_interfaces::msg::SetParametersResult Driver::parametersCallback(
+    const std::vector<rclcpp::Parameter> &parameters)
+{
+  rcl_interfaces::msg::SetParametersResult result;
+  // Here update class attributes, do some actions, etc.
+
+  WheelController::ErrorCode gain_setting_result = WheelController::ErrorCode::ERROR_NONE;
+
+  for (auto &&param : parameters)
+  {
+    if (param.get_name() == "wheel_gain_p")
+    {
+      gain_setting_result = wheel_controller_.set_p_gain(param.as_double());
+      if (gain_setting_result != WheelController::ErrorCode::ERROR_NONE) break;
+    }
+    else if (param.get_name() == "wheel_gain_i")
+    {
+      gain_setting_result = wheel_controller_.set_i_gain(param.as_double());
+      if (gain_setting_result != WheelController::ErrorCode::ERROR_NONE) break;
+    }
+    else if (param.get_name() == "wheel_gain_d")
+    {
+      gain_setting_result = wheel_controller_.set_d_gain(param.as_double());
+      if (gain_setting_result != WheelController::ErrorCode::ERROR_NONE) break;
+    }
+  }
+
+  if (gain_setting_result == WheelController::ErrorCode::ERROR_NONE)
+  {
+    result.successful = true;
+    result.reason = "success";
+  }
+  else if (gain_setting_result == WheelController::ErrorCode::ERROR_GAIN_SETTING_MODE_DISABLED) {
+    result.successful = false;
+    result.reason = "ゲイン設定モードが無効になっています";
+  } else if (gain_setting_result == WheelController::ErrorCode::ERROR_CAN_SEND_FAILED) {
+    result.successful = false;
+    result.reason = "CAN送信に失敗しました";
+  }
+
+  return result;
 }
 
 void Driver::on_polling_timer()
@@ -460,6 +514,37 @@ void Driver::on_set_right_led(
   }
 }
 
+void Driver::on_enable_gain_setting(
+    const std_srvs::srv::SetBool::Request::SharedPtr request,
+    std_srvs::srv::SetBool::Response::SharedPtr response)
+{
+  if (request->data)
+  {
+    // ゲイン設定を有効にする
+    WheelController::ErrorCode error_code = wheel_controller_.enable_gain_setting();
+    if (error_code == WheelController::ErrorCode::ERROR_NONE)
+    {
+      response->success = true;
+      response->message = "ゲイン設定モードを有効にしました。車輪が回らなくなります。";
+    } else if (error_code == WheelController::ErrorCode::ERROR_WHEELS_ARE_MOVING) {
+      response->success = false;
+      response->message = "車輪が回転しているため、ゲイン設定モードを有効にできませんでした。";
+    }
+  }
+  else
+  {
+    // ゲイン設定を無効にする
+    WheelController::ErrorCode error_code = wheel_controller_.disable_gain_setting();
+    if (error_code == WheelController::ErrorCode::ERROR_NONE)
+    {
+      response->success = true;
+      response->message = "ゲイン設定モードを無効にしました。車輪が回せます。";
+    } else {
+      response->success = false;
+      response->message = "ゲイン設定モードを無効にできませんでした。";
+    }
+  }
+}
 
 }  // namespace frootspi_hardware
 

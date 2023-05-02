@@ -19,6 +19,8 @@
 #include <string>
 #include <vector>
 
+#include "rcl_interfaces/msg/set_parameters_result.hpp"
+
 #include "frootspi_hardware/visibility_control.h"
 #include "frootspi_hardware/io_expander.hpp"
 #include "frootspi_hardware/capacitor_monitor.hpp"
@@ -73,6 +75,9 @@ private:
   void on_set_right_led(
     const std_srvs::srv::SetBool::Request::SharedPtr request,
     std_srvs::srv::SetBool::Response::SharedPtr response);
+  void on_enable_gain_setting(
+    const std_srvs::srv::SetBool::Request::SharedPtr request,
+    std_srvs::srv::SetBool::Response::SharedPtr response);
 
   std::shared_ptr<rclcpp::Publisher<frootspi_msgs::msg::BallDetection>>
   pub_ball_detection_;
@@ -98,6 +103,13 @@ private:
   std::shared_ptr<rclcpp::Service<std_srvs::srv::SetBool>> srv_set_left_led_;
   std::shared_ptr<rclcpp::Service<std_srvs::srv::SetBool>> srv_set_center_led_;
   std::shared_ptr<rclcpp::Service<std_srvs::srv::SetBool>> srv_set_right_led_;
+  std::shared_ptr<rclcpp::Service<std_srvs::srv::SetBool>> srv_enable_gain_setting_;
+
+  // Parameters
+  rcl_interfaces::msg::SetParametersResult parametersCallback(
+    const std::vector<rclcpp::Parameter> & parameters);
+  OnSetParametersCallbackHandle::SharedPtr set_parameters_callback_handle_;
+
 
   rclcpp::TimerBase::SharedPtr polling_timer_;
   rclcpp::TimerBase::SharedPtr discharge_kicker_timer_;
