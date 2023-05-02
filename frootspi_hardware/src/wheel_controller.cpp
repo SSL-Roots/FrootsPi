@@ -87,22 +87,20 @@ bool WheelController::device_close()
 WheelController::ErrorCode WheelController::set_wheel_velocities(
   const double vel_front_right, const double vel_front_left, const double vel_back_center)
 {
-  constexpr double GEAR_RAITO = 2.2 / 1.091;  // この数値はモタドラと帳尻を合わせること
-  constexpr double LSB = 10;  // 送信データの1bitが、モータ速度の10倍を表す
-  constexpr double WHEEL_TO_MOTOR = GEAR_RAITO * LSB;
+  constexpr double LSB = 100;  // 送信データの1bitが、車輪速度の100倍を表す
 
   if (is_gain_setting_enabled_) {
     return WheelController::ERROR_GAIN_SETTING_MODE_ENABLED;
   }
 
+  // インスタンス変数に現在の速度を保存
   vel_front_right_ = vel_front_right;
   vel_front_left_ = vel_front_left;
   vel_back_center_ = vel_back_center;
 
-  int16_t motor_vel_right = vel_front_right * WHEEL_TO_MOTOR;
-  int16_t motor_vel_left = vel_front_left * WHEEL_TO_MOTOR;
-  int16_t motor_vel_center = vel_back_center * WHEEL_TO_MOTOR;
-
+  int16_t motor_vel_right = vel_front_right * LSB;
+  int16_t motor_vel_left = vel_front_left * LSB;
+  int16_t motor_vel_center = vel_back_center * LSB;
 
   struct can_frame frame;
   frame.can_id = 0x1aa;
