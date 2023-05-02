@@ -295,11 +295,7 @@ void Driver::on_polling_timer()
   pub_switches_state_->publish(std::move(switches_state_msg));
 
   // オムニホイール回転速度をパブリッシュ
-  auto wheel_velocities_msg = std::make_unique<frootspi_msgs::msg::WheelVelocities>();
-  wheel_velocities_msg->front_left = 1.0;  // 左前ホイール回転速度 [rad/sec]
-  wheel_velocities_msg->front_right = 1.0;  // 右前ホイール回転速度 [rad/sec]
-  wheel_velocities_msg->back_center = 1.0;  // 後ホイール回転速度 [rad/sec]
-  pub_present_wheel_velocities_->publish(std::move(wheel_velocities_msg));
+  // TODO: implement
 
   // IMUセンサの情報をパブリッシュ
 
