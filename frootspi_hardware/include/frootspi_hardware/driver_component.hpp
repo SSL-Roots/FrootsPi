@@ -53,7 +53,7 @@ public:
   ~Driver();
 
 private:
-  void on_polling_timer();
+  void on_high_rate_polling_timer();
   void on_discharge_kicker_timer();
   void callback_dribble_power(const frootspi_msgs::msg::DribblePower::SharedPtr msg);
   void callback_wheel_velocities(const frootspi_msgs::msg::WheelVelocities::SharedPtr msg);

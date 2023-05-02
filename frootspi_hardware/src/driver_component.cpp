@@ -55,8 +55,8 @@ Driver::Driver(const rclcpp::NodeOptions & options)
   using namespace std::placeholders;  // for _1, _2, _3...
 
   // GPIOを定期的にread / writeするためのタイマー
-  polling_timer_ = create_wall_timer(1ms, std::bind(&Driver::on_polling_timer, this));
-  polling_timer_->cancel();  // ノードがActiveになるまでタイマーオフ
+  high_rate_polling_timer_ = create_wall_timer(1ms, std::bind(&Driver::on_high_rate_polling_timer, this));
+  high_rate_polling_timer_->cancel();  // ノードがActiveになるまでタイマーオフ
   // コンデンサ放電時に使うタイマー
   discharge_kicker_timer_ =
     create_wall_timer(500ms, std::bind(&Driver::on_discharge_kicker_timer, this));
@@ -178,14 +178,14 @@ Driver::Driver(const rclcpp::NodeOptions & options)
   timeout_has_printed_ = false;
 
   // polling timer reset 
-  polling_timer_->reset();
+  high_rate_polling_timer_->reset();
 
   gpio_write(pi_, GPIO_KICK_SUPPLY_POWER, PI_HIGH);
 }
 
 Driver::~Driver()
 {
-  polling_timer_->cancel();
+  high_rate_polling_timer_->cancel();
 
   gpio_write(pi_, GPIO_DRIBBLE_PWM, PI_HIGH);  // 負論理のためHighでモータオフ
   // lcd_driver_.write_texts("ROS 2", "SHUTDOWN");
@@ -244,7 +244,7 @@ rcl_interfaces::msg::SetParametersResult Driver::parametersCallback(
   return result;
 }
 
-void Driver::on_polling_timer()
+void Driver::on_high_rate_polling_timer()
 {
   // ボール検出 変化があった場合のみpublish
   bool ball_detection = gpio_read(pi_, gpio_ball_sensor_);
