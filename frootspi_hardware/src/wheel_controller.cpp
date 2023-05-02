@@ -262,11 +262,13 @@ WheelController::ErrorCode WheelController::set_pid_gain(const double gain_p, co
 
 bool WheelController::send_pid_gain()
 {
-  constexpr double COEFFICIENT = 1000000.0;
+  constexpr double COEFFICIENT_P = 10000.0;
+  constexpr double COEFFICIENT_I = 1000000.0;
+  constexpr double COEFFICIENT_D = 1000000.0;
 
-  int16_t int_gain_p = (int16_t)constrain(gain_p_ * COEFFICIENT, 0.0, (double)__INT16_MAX__);
-  int16_t int_gain_i = (int16_t)constrain(gain_i_ * COEFFICIENT, 0.0, (double)__INT16_MAX__);
-  int16_t int_gain_d = (int16_t)constrain(gain_d_ * COEFFICIENT, 0.0, (double)__INT16_MAX__);
+  int16_t int_gain_p = (int16_t)constrain(gain_p_ * COEFFICIENT_P, 0.0, (double)__INT16_MAX__);
+  int16_t int_gain_i = (int16_t)constrain(gain_i_ * COEFFICIENT_I, 0.0, (double)__INT16_MAX__);
+  int16_t int_gain_d = (int16_t)constrain(gain_d_ * COEFFICIENT_D, 0.0, (double)__INT16_MAX__);
 
   struct can_frame frame;
   frame.can_id = 0x1aa;
