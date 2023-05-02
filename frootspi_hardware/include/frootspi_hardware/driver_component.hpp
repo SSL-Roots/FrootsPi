@@ -130,6 +130,8 @@ private:
   int front_display_prescaler_count_;
   int capacitor_monitor_prescaler_count_;
   FrontIndicateData front_indicate_data_;
+  // sensor data store
+  bool latest_ball_detection_;
 };
 
 }  // namespace frootspi_hardware

@@ -246,11 +246,16 @@ rcl_interfaces::msg::SetParametersResult Driver::parametersCallback(
 
 void Driver::on_polling_timer()
 {
-  // ボール検出をパブリッシュ
+  // ボール検出 変化があった場合のみpublish
+  bool ball_detection = gpio_read(pi_, gpio_ball_sensor_);
+  if (ball_detection != this->latest_ball_detection_) 
+  {
   auto ball_detection_msg = std::make_unique<frootspi_msgs::msg::BallDetection>();
-  ball_detection_msg->detected = gpio_read(pi_, gpio_ball_sensor_);
-  front_indicate_data_.Parameter.BallSens = ball_detection_msg->detected;
+    ball_detection_msg->detected = ball_detection;
   pub_ball_detection_->publish(std::move(ball_detection_msg));
+  }
+  this->latest_ball_detection_ = ball_detection;
+  front_indicate_data_.Parameter.BallSens = ball_detection;
 
   // バッテリー電圧をパブリッシュ
   auto battery_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
