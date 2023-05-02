@@ -55,8 +55,10 @@ Driver::Driver(const rclcpp::NodeOptions & options)
   using namespace std::placeholders;  // for _1, _2, _3...
 
   // GPIOを定期的にread / writeするためのタイマー
-  polling_timer_ = create_wall_timer(1ms, std::bind(&Driver::on_polling_timer, this));
-  polling_timer_->cancel();  // ノードがActiveになるまでタイマーオフ
+  high_rate_polling_timer_ = create_wall_timer(1ms, std::bind(&Driver::on_high_rate_polling_timer, this));
+  high_rate_polling_timer_->cancel();  // ノードがActiveになるまでタイマーオフ
+  low_rate_polling_timer_ = create_wall_timer(1000ms, std::bind(&Driver::on_low_rate_polling_timer, this));
+  low_rate_polling_timer_->cancel();  // ノードがActiveになるまでタイマーオフ
   // コンデンサ放電時に使うタイマー
   discharge_kicker_timer_ =
     create_wall_timer(500ms, std::bind(&Driver::on_discharge_kicker_timer, this));
@@ -178,14 +180,16 @@ Driver::Driver(const rclcpp::NodeOptions & options)
   timeout_has_printed_ = false;
 
   // polling timer reset 
-  polling_timer_->reset();
+  high_rate_polling_timer_->reset();
+  low_rate_polling_timer_->reset();
 
   gpio_write(pi_, GPIO_KICK_SUPPLY_POWER, PI_HIGH);
 }
 
 Driver::~Driver()
 {
-  polling_timer_->cancel();
+  high_rate_polling_timer_->cancel();
+  low_rate_polling_timer_->cancel();
 
   gpio_write(pi_, GPIO_DRIBBLE_PWM, PI_HIGH);  // 負論理のためHighでモータオフ
   // lcd_driver_.write_texts("ROS 2", "SHUTDOWN");
@@ -244,62 +248,55 @@ rcl_interfaces::msg::SetParametersResult Driver::parametersCallback(
   return result;
 }
 
-void Driver::on_polling_timer()
+void Driver::on_high_rate_polling_timer()
 {
-  // ボール検出をパブリッシュ
+  // ボール検出 変化があった場合のみpublish
+  bool ball_detection = gpio_read(pi_, gpio_ball_sensor_);
+  if (ball_detection != this->latest_ball_detection_) 
+  {
   auto ball_detection_msg = std::make_unique<frootspi_msgs::msg::BallDetection>();
-  ball_detection_msg->detected = gpio_read(pi_, gpio_ball_sensor_);
-  front_indicate_data_.Parameter.BallSens = ball_detection_msg->detected;
+    ball_detection_msg->detected = ball_detection;
   pub_ball_detection_->publish(std::move(ball_detection_msg));
+  }
+  this->latest_ball_detection_ = ball_detection;
+  front_indicate_data_.Parameter.BallSens = ball_detection;
 
-  // バッテリー電圧をパブリッシュ
-  auto battery_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
-  battery_monitor_.main_battery_info_read(
-    battery_voltage_msg->voltage, battery_voltage_msg->voltage_status);
-  front_indicate_data_.Parameter.BatVol = (unsigned char)(battery_voltage_msg->voltage*10);
-  // frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_FULL;
-  pub_battery_voltage_->publish(std::move(battery_voltage_msg));
+  // スイッチ状態をRead 変化があった場合のみpublish
+  bool pushed_button0, pushed_button1, pushed_button2, pushed_button3, turned_on_dip0, turned_on_dip1;
+  io_expander_.read(
+    pushed_button0, pushed_button1, pushed_button2, pushed_button3,
+    turned_on_dip0, turned_on_dip1);
+  bool pushed_shutdown = gpio_read(pi_, GPIO_SHUTDOWN_SWITCH) ^ 1;  // シャットダウンスイッチは負論理なので、XORでビット反転させる
+  if (pushed_button0 != this->latest_pushed_button0_ ||
+      pushed_button1 != this->latest_pushed_button1_ ||
+      pushed_button2 != this->latest_pushed_button2_ ||
+      pushed_button3 != this->latest_pushed_button3_ ||
+      turned_on_dip0 != this->latest_turned_on_dip0_ ||
+      turned_on_dip1 != this->latest_turned_on_dip1_ ||
+      pushed_shutdown != this->latest_pushed_shutdown_) 
+  {
+    auto switches_state_msg = std::make_unique<frootspi_msgs::msg::SwitchesState>();
+    switches_state_msg->pushed_button0 = pushed_button0;
+    switches_state_msg->pushed_button1 = pushed_button1;
+    switches_state_msg->pushed_button2 = pushed_button2;
+    switches_state_msg->pushed_button3 = pushed_button3;
+    switches_state_msg->turned_on_dip0 = turned_on_dip0;
+    switches_state_msg->turned_on_dip1 = turned_on_dip1;
+    switches_state_msg->pushed_shutdown = pushed_shutdown;
+    pub_switches_state_->publish(std::move(switches_state_msg));
 
-  // UPS(無停電電源装置)電圧をパブリッシュ
-  auto ups_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
-  battery_monitor_.sub_battery_info_read(
-    ups_voltage_msg->voltage, ups_voltage_msg->voltage_status);
-  // frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_TOO_LOW;
-  pub_ups_voltage_->publish(std::move(ups_voltage_msg));
-
-  // キッカー（昇圧回路）電圧をパブリッシュ
-  capacitor_monitor_prescaler_count_++;
-  if(capacitor_monitor_prescaler_count_ > 50){
-    auto kicker_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
-    capacitor_monitor_.capacitor_info_read(
-      kicker_voltage_msg->voltage, kicker_voltage_msg->voltage_status);
-    front_indicate_data_.Parameter.CapVol = (unsigned char)(kicker_voltage_msg->voltage);
-    if(kicker_voltage_msg->voltage_status >= frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_OK){
-      front_indicate_data_.Parameter.CapacitorSta = true;
-    } else {
-      front_indicate_data_.Parameter.CapacitorSta = false;
-    }
-    pub_kicker_voltage_->publish(std::move(kicker_voltage_msg));
-    capacitor_monitor_prescaler_count_ = 0;
+    // 情報更新
+    this->latest_pushed_button0_ = pushed_button0;
+    this->latest_pushed_button1_ = pushed_button1;
+    this->latest_pushed_button2_ = pushed_button2;
+    this->latest_pushed_button3_ = pushed_button3;
+    this->latest_turned_on_dip0_ = turned_on_dip0;
+    this->latest_turned_on_dip1_ = turned_on_dip1;
+    this->latest_pushed_shutdown_ = pushed_shutdown;
   }
 
-
-  // スイッチ状態をパブリッシュ
-  auto switches_state_msg = std::make_unique<frootspi_msgs::msg::SwitchesState>();
-  io_expander_.read(
-    switches_state_msg->pushed_button0, switches_state_msg->pushed_button1,
-    switches_state_msg->pushed_button2, switches_state_msg->pushed_button3,
-    switches_state_msg->turned_on_dip0, switches_state_msg->turned_on_dip1);
-  // シャットダウンスイッチは負論理なので、XORでビット反転させる
-  switches_state_msg->pushed_shutdown = gpio_read(pi_, GPIO_SHUTDOWN_SWITCH) ^ 1;
-  pub_switches_state_->publish(std::move(switches_state_msg));
-
   // オムニホイール回転速度をパブリッシュ
-  auto wheel_velocities_msg = std::make_unique<frootspi_msgs::msg::WheelVelocities>();
-  wheel_velocities_msg->front_left = 1.0;  // 左前ホイール回転速度 [rad/sec]
-  wheel_velocities_msg->front_right = 1.0;  // 右前ホイール回転速度 [rad/sec]
-  wheel_velocities_msg->back_center = 1.0;  // 後ホイール回転速度 [rad/sec]
-  pub_present_wheel_velocities_->publish(std::move(wheel_velocities_msg));
+  // TODO: implement
 
   // IMUセンサの情報をパブリッシュ
 
@@ -327,6 +324,36 @@ void Driver::on_polling_timer()
   //   front_display_prescaler_count_ = 0;
   // }
 }
+
+
+void Driver::on_low_rate_polling_timer()
+{
+  // バッテリー電圧をパブリッシュ
+  auto battery_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
+  battery_monitor_.main_battery_info_read(
+    battery_voltage_msg->voltage, battery_voltage_msg->voltage_status);
+  front_indicate_data_.Parameter.BatVol = (unsigned char)(battery_voltage_msg->voltage*10);
+  pub_battery_voltage_->publish(std::move(battery_voltage_msg));
+
+  // UPS(無停電電源装置)電圧をパブリッシュ
+  auto ups_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
+  battery_monitor_.sub_battery_info_read(
+    ups_voltage_msg->voltage, ups_voltage_msg->voltage_status);
+  pub_ups_voltage_->publish(std::move(ups_voltage_msg));
+
+  // キッカー（昇圧回路）電圧をパブリッシュ
+  auto kicker_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
+  capacitor_monitor_.capacitor_info_read(
+    kicker_voltage_msg->voltage, kicker_voltage_msg->voltage_status);
+  front_indicate_data_.Parameter.CapVol = (unsigned char)(kicker_voltage_msg->voltage);
+  if(kicker_voltage_msg->voltage_status >= frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_OK){
+    front_indicate_data_.Parameter.CapacitorSta = true;
+  } else {
+    front_indicate_data_.Parameter.CapacitorSta = false;
+  }
+  pub_kicker_voltage_->publish(std::move(kicker_voltage_msg));
+}
+
 
 void Driver::on_discharge_kicker_timer()
 {

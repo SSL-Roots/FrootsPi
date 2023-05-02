@@ -183,7 +183,6 @@ void KickerNode::callback_kick_command(const frootspi_msgs::msg::KickCommand::Sh
   // キック可否判定 (ボールがあって、電圧が190V以上で、前回のキックは正常に行われている)
   RCLCPP_INFO(this->get_logger(), "kicer request.");
   if ((ball_detection_ == true) && 
-      (capacitor_voltage_ >= 190) && 
       (is_release_ == false) &&
       (is_kicking_ == false)) {
     set_kick(msg->kick_type, msg->kick_power);
