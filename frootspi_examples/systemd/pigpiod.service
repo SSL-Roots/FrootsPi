@@ -3,8 +3,9 @@ Description=Pigpio daemon
 
 [Service]
 Type=simple
-PIDFile=pigpio.pid
+PIDFile=/var/run/pigpio.pid
 ExecStart=/usr/local/bin/pigpiod -g -s 1
+ExecStop=/bin/sh -c 'rm /var/run/pigpio.pid; killall pigpiod'
 
 [Install]
 WantedBy=multi-user.target
