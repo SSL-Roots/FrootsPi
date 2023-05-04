@@ -26,7 +26,7 @@ namespace frootspi_conductor
 using namespace std::chrono_literals;
 
 Conductor::Conductor(const rclcpp::NodeOptions & options)
-: Node("frootspi_conductor", options)
+: Node("frootspi_conductor", options), count_recving_command_(0)
 {
   using namespace std::placeholders;  // for _1, _2, _3...
 
@@ -36,10 +36,14 @@ Conductor::Conductor(const rclcpp::NodeOptions & options)
   pub_target_velocity_ = create_publisher<geometry_msgs::msg::Twist>("target_velocity", 10);
   pub_dribble_power_ = create_publisher<frootspi_msgs::msg::DribblePower>("dribble_power", 10);
   pub_kick_command_ = create_publisher<frootspi_msgs::msg::KickCommand>("kick_command", 10);
+  pub_receiving_rate_ = create_publisher<std_msgs::msg::UInt16>("~/command_receiving_rate", 10);
   client_charge_request_ = create_client<std_srvs::srv::SetBool>("capacitor_charge_request");
 
   // 充電許可サービスを定期的にコールする関数
   polling_timer_ = create_wall_timer(5s, std::bind(&Conductor::on_polling_timer, this));
+
+  // 1秒おきのタイマー
+  one_sec_polling_timer_ = create_wall_timer(1s, std::bind(&Conductor::on_one_sec_polling_timer, this));
 
   // 通信タイムアウト検知用のタイマー
   steady_clock_ = rclcpp::Clock(RCL_STEADY_TIME);
@@ -73,6 +77,23 @@ void Conductor::on_polling_timer()
   }
 }
 
+
+/**
+ * @brief: 1秒おきに、受信したコマンドの数から受信頻度を算出してPublish
+*/
+void Conductor::on_one_sec_polling_timer()
+{
+  uint16_t hz = count_recving_command_;
+
+  auto msg = std::make_unique<std_msgs::msg::UInt16>();
+  msg->data = hz;
+  pub_receiving_rate_->publish(std::move(msg));
+
+  // reset counter
+  count_recving_command_ = 0;
+
+}
+
 void Conductor::callback_commands(const RobotCommand::SharedPtr msg)
 {
   // RobotCommandをFrootsPiの各ハードウェア向けのトピックに分解してPublishする
@@ -104,6 +125,9 @@ void Conductor::callback_commands(const RobotCommand::SharedPtr msg)
 
   // 通信タイムアウト処理用に、タイムスタンプを取得する
   sub_command_timestamp_ = steady_clock_.now();
+
+  // 受信カウンタをインクリメント
+  ++count_recving_command_;
 }
 
 }  // namespace frootspi_conductor
