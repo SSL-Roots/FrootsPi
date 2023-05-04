@@ -413,28 +413,22 @@ void Driver::on_kick(
   const frootspi_msgs::srv::Kick::Request::SharedPtr request,
   frootspi_msgs::srv::Kick::Response::SharedPtr response)
 {
-  const int MAX_SLEEP_TIME_MSEC_FOR_STRAIGHT = 25;
-  const double MAX_KICK_SPEED = 6.5;  // m/s
+  const int MAX_SLEEP_TIME_USEC_FOR_STRAIGHT = 5000;
 
   front_indicate_data_.Parameter.KickReq = true;
 
   if (request->kick_type == frootspi_msgs::srv::Kick::Request::KICK_TYPE_STRAIGHT) {
     // ストレートキック
-
-    // kick_power を 0.0 ~ 1.0に落とし込む
-    double kick_power = request->kick_power / MAX_KICK_SPEED;
-    if (kick_power > 1.0) {
-      kick_power = 1.0;
-    } else if (kick_power < 0) {
-      kick_power = 0;
+    int sleep_time_usec = 673 * request->kick_power + 100; // constants based on test
+    if (sleep_time_usec < MAX_SLEEP_TIME_USEC_FOR_STRAIGHT) {
+      sleep_time_usec = MAX_SLEEP_TIME_USEC_FOR_STRAIGHT;
     }
-    int sleep_time_msec = MAX_SLEEP_TIME_MSEC_FOR_STRAIGHT * kick_power;
 
     // キックをする際は充電を停止する
     gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_LOW);
     // GPIOをHIGHにしている時間を変化させて、キックパワーを変更する
     gpio_write(pi_, GPIO_KICK_STRAIGHT, PI_HIGH);
-    rclcpp::sleep_for(std::chrono::milliseconds(sleep_time_msec));
+    rclcpp::sleep_for(std::chrono::microseconds(sleep_time_usec));
     gpio_write(pi_, GPIO_KICK_STRAIGHT, PI_LOW);
 
     if (enable_kicker_charging_) {
@@ -443,7 +437,7 @@ void Driver::on_kick(
     }
 
     response->success = true;
-    response->message = std::to_string(sleep_time_msec) + " ミリ秒間ソレノイドをONしました";
+    response->message = std::to_string(sleep_time_usec) + " ミリ秒間ソレノイドをONしました";
 
   } else if (request->kick_type == frootspi_msgs::srv::Kick::Request::KICK_TYPE_CHIP) {
     // チップキックは未実装
