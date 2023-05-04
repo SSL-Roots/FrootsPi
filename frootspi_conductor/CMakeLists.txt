@@ -43,6 +43,11 @@ ament_target_dependencies(conductor_component
 
 rclcpp_components_register_nodes(conductor_component "frootspi_conductor::Conductor")
 
+add_executable(frootspi_conductor_node src/main.cpp)
+target_link_libraries(frootspi_conductor_node conductor_component)
+ament_target_dependencies(frootspi_conductor_node
+  rclcpp)
+
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
 
 ament_export_dependencies(consai_frootspi_msgs)
@@ -59,6 +64,10 @@ install(
   DIRECTORY include/
   DESTINATION include
 )
+
+install(TARGETS
+  frootspi_conductor_node
+  DESTINATION lib/${PROJECT_NAME})
 
 install(TARGETS
   conductor_component
