@@ -23,6 +23,7 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
+find_package(std_msgs REQUIRED)
 
 include_directories(include)
 
@@ -37,7 +38,9 @@ ament_target_dependencies(conductor_component
   rclcpp_components
   geometry_msgs
   std_srvs
+  std_msgs
 )
+
 rclcpp_components_register_nodes(conductor_component "frootspi_conductor::Conductor")
 
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
@@ -47,6 +50,7 @@ ament_export_dependencies(frootspi_msgs)
 ament_export_dependencies(rclcpp)
 ament_export_dependencies(rclcpp_components)
 ament_export_dependencies(std_srvs)
+ament_export_dependencies(std_msgs)
 
 ament_export_include_directories(include)
 ament_export_libraries(conductor_component)
