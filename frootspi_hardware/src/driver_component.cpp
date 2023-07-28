@@ -434,15 +434,39 @@ void Driver::on_kick(
     // キックをする際は充電を停止する
     gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_LOW);
     // GPIOをHIGHにしている時間を変化させて、キックパワーを変更する
-    gpio_write(pi_, GPIO_KICK_STRAIGHT, PI_HIGH);
-    rclcpp::sleep_for(std::chrono::microseconds(sleep_time_usec));
-    gpio_write(pi_, GPIO_KICK_STRAIGHT, PI_LOW);
-
-
-    if (enable_kicker_charging_) {
-      // 充電許可が出ていれば、充電を再開する
-      gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_HIGH);
+    wave_clear(pi_);
+    gpioPulse_t pulses[] = {
+      {1 << GPIO_KICK_STRAIGHT, 0, sleep_time_usec},
+      {0, 1 << GPIO_KICK_STRAIGHT, 0},
+    };
+    int num_pulse = wave_add_generic(pi_, 2, pulses);
+    if (num_pulse < 0) {
+      RCLCPP_ERROR(this->get_logger(), "Failed to add wave.");
+      response->success = false;
+      response->message = "キック処理に失敗しました";
+      return;
     }
+
+    int wave_id = wave_create(pi_);
+    if (wave_id < 0) {
+      RCLCPP_ERROR(this->get_logger(), "Failed to create wave.");
+      response->success = false;
+      response->message = "キック処理に失敗しました";
+      return;
+    }
+
+    int result = wave_send_once(pi_, wave_id);
+    if (result < 0) {
+      RCLCPP_ERROR(this->get_logger(), "Failed to send wave.");
+      response->success = false;
+      response->message = "キック処理に失敗しました";
+      return;
+    }
+
+    // if (enable_kicker_charging_) {
+    //   // 充電許可が出ていれば、充電を再開する
+    //   gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_HIGH);
+    // }
 
     response->success = true;
     response->message = std::to_string(sleep_time_usec) + " ミリ秒間ソレノイドをONしました";
