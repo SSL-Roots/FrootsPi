@@ -417,12 +417,19 @@ void Driver::on_kick(
 
   front_indicate_data_.Parameter.KickReq = true;
 
+
+
   if (request->kick_type == frootspi_msgs::srv::Kick::Request::KICK_TYPE_STRAIGHT) {
+    
+    gpio_write(pi_, GPIO_KICK_CHIP, PI_HIGH);
+
     // ストレートキック
     int sleep_time_usec = 673 * request->kick_power + 100; // constants based on test
     if (sleep_time_usec > MAX_SLEEP_TIME_USEC_FOR_STRAIGHT) {
       sleep_time_usec = MAX_SLEEP_TIME_USEC_FOR_STRAIGHT;
     }
+
+    sleep_time_usec = 1000; // test
 
     // キックをする際は充電を停止する
     gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_LOW);
@@ -430,6 +437,7 @@ void Driver::on_kick(
     gpio_write(pi_, GPIO_KICK_STRAIGHT, PI_HIGH);
     rclcpp::sleep_for(std::chrono::microseconds(sleep_time_usec));
     gpio_write(pi_, GPIO_KICK_STRAIGHT, PI_LOW);
+
 
     if (enable_kicker_charging_) {
       // 充電許可が出ていれば、充電を再開する
@@ -458,6 +466,8 @@ void Driver::on_kick(
     response->message = "未定義のキックタイプです";
   }
   front_indicate_data_.Parameter.KickReq = false;
+  
+  gpio_write(pi_, GPIO_KICK_CHIP, PI_LOW);
 }
 
 void Driver::on_set_kicker_charging(
