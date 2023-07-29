@@ -419,21 +419,46 @@ void Driver::on_kick(
 
   if (request->kick_type == frootspi_msgs::srv::Kick::Request::KICK_TYPE_STRAIGHT) {
     // ストレートキック
-    int sleep_time_usec = 673 * request->kick_power + 100; // constants based on test
+    uint32_t sleep_time_usec = 673 * request->kick_power + 100; // constants based on test
     if (sleep_time_usec > MAX_SLEEP_TIME_USEC_FOR_STRAIGHT) {
       sleep_time_usec = MAX_SLEEP_TIME_USEC_FOR_STRAIGHT;
     }
-
-    // キックをする際は充電を停止する
-    gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_LOW);
+    
     // GPIOをHIGHにしている時間を変化させて、キックパワーを変更する
-    gpio_write(pi_, GPIO_KICK_STRAIGHT, PI_HIGH);
-    rclcpp::sleep_for(std::chrono::microseconds(sleep_time_usec));
-    gpio_write(pi_, GPIO_KICK_STRAIGHT, PI_LOW);
+    uint32_t bit_kick_straight = 1 << GPIO_KICK_STRAIGHT;
+    uint32_t bit_kick_enable_charge = 1 << GPIO_KICK_ENABLE_CHARGE;
+    uint32_t bit_kick_enable_charge_masked = enable_kicker_charging_ ? bit_kick_enable_charge : 0;
 
-    if (enable_kicker_charging_) {
-      // 充電許可が出ていれば、充電を再開する
-      gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_HIGH);
+    gpioPulse_t pulses[] = {
+        {0,                             bit_kick_enable_charge, 100},             // 充電を停止する
+        {bit_kick_straight,             0,                      sleep_time_usec}, // キックON
+        {0,                             bit_kick_straight,      100},             // キックOFF
+        {bit_kick_enable_charge_masked, 0,                      0},               // 充電を再開する
+    };
+    
+    wave_clear(pi_);
+    int num_pulse = wave_add_generic(pi_, sizeof(pulses)/sizeof(gpioPulse_t), pulses);
+    if (num_pulse < 0) {
+      RCLCPP_ERROR(this->get_logger(), "Failed to add wave.");
+      response->success = false;
+      response->message = "キック処理に失敗しました";
+      return;
+    }
+
+    int wave_id = wave_create(pi_);
+    if (wave_id < 0) {
+      RCLCPP_ERROR(this->get_logger(), "Failed to create wave.");
+      response->success = false;
+      response->message = "キック処理に失敗しました";
+      return;
+    }
+
+    int result = wave_send_once(pi_, wave_id);
+    if (result < 0) {
+      RCLCPP_ERROR(this->get_logger(), "Failed to send wave.");
+      response->success = false;
+      response->message = "キック処理に失敗しました";
+      return;
     }
 
     response->success = true;
