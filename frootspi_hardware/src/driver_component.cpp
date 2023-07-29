@@ -417,29 +417,30 @@ void Driver::on_kick(
 
   front_indicate_data_.Parameter.KickReq = true;
 
-
-
   if (request->kick_type == frootspi_msgs::srv::Kick::Request::KICK_TYPE_STRAIGHT) {
     
     gpio_write(pi_, GPIO_KICK_CHIP, PI_HIGH);
 
     // ストレートキック
-    int sleep_time_usec = 673 * request->kick_power + 100; // constants based on test
+    uint32_t sleep_time_usec = 673 * request->kick_power + 100; // constants based on test
     if (sleep_time_usec > MAX_SLEEP_TIME_USEC_FOR_STRAIGHT) {
       sleep_time_usec = MAX_SLEEP_TIME_USEC_FOR_STRAIGHT;
     }
-
-    sleep_time_usec = 1000; // test
-
-    // キックをする際は充電を停止する
-    gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_LOW);
+    
     // GPIOをHIGHにしている時間を変化させて、キックパワーを変更する
-    wave_clear(pi_);
+    uint32_t bit_kick_straight = 1 << GPIO_KICK_STRAIGHT;
+    uint32_t bit_kick_enable_charge = 1 << GPIO_KICK_ENABLE_CHARGE;
+    uint32_t bit_kick_enable_charge_masked = enable_kicker_charging_ ? bit_kick_enable_charge : 0;
+
     gpioPulse_t pulses[] = {
-      {1 << GPIO_KICK_STRAIGHT, 0, sleep_time_usec},
-      {0, 1 << GPIO_KICK_STRAIGHT, 0},
+        {0,                             bit_kick_enable_charge, 100},             // 充電を停止する
+        {bit_kick_straight,             0,                      sleep_time_usec}, // キックON
+        {0,                             bit_kick_straight,      100},             // キックOFF
+        {bit_kick_enable_charge_masked, 0,                      0},               // 充電を再開する
     };
-    int num_pulse = wave_add_generic(pi_, 2, pulses);
+    
+    wave_clear(pi_);
+    int num_pulse = wave_add_generic(pi_, sizeof(pulses)/sizeof(gpioPulse_t), pulses);
     if (num_pulse < 0) {
       RCLCPP_ERROR(this->get_logger(), "Failed to add wave.");
       response->success = false;
@@ -462,11 +463,6 @@ void Driver::on_kick(
       response->message = "キック処理に失敗しました";
       return;
     }
-
-    // if (enable_kicker_charging_) {
-    //   // 充電許可が出ていれば、充電を再開する
-    //   gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_HIGH);
-    // }
 
     response->success = true;
     response->message = std::to_string(sleep_time_usec) + " ミリ秒間ソレノイドをONしました";
