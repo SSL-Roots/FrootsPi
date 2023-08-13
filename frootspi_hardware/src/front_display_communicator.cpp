@@ -58,7 +58,6 @@ bool FrontDisplayCommunicator::close()
   } else {
     return false;
   }
-  
 }
 
 bool FrontDisplayCommunicator::send_data(FrontIndicateData * front_indicate_data)
@@ -69,15 +68,13 @@ bool FrontDisplayCommunicator::send_data(FrontIndicateData * front_indicate_data
   // if(front_indicate_data->Parameter.ComCount >= 255){
   //   front_indicate_data->Parameter.ComCount = 0;
   // }
-  for(int i = 0; i<5 ; i++){
+  for (int i = 0; i < 5; i++) {
     data[i] = *(front_indicate_data->Indicate_data + i);
   }
 
-  if(i2c_write_device(pi_, i2c_handler_, data, 5) > 0)
-  {
+  if (i2c_write_device(pi_, i2c_handler_, data, 5) > 0) {
     return false;
   }
 
   return true;
 }
-

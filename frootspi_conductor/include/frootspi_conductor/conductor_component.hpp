@@ -24,8 +24,6 @@
 #include "frootspi_msgs/msg/froots_pi_commands.hpp"
 #include "frootspi_msgs/msg/kick_command.hpp"
 #include "rclcpp/rclcpp.hpp"
-#include "rclcpp_lifecycle/lifecycle_node.hpp"
-#include "rclcpp_lifecycle/lifecycle_publisher.hpp"
 
 #include "frootspi_msgs/msg/dribble_power.hpp"
 #include "geometry_msgs/msg/twist.hpp"

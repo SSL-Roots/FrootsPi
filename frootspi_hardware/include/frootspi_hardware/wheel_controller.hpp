@@ -18,7 +18,6 @@
 class WheelController
 {
 public:
-
   enum ErrorCode
   {
     ERROR_NONE = 0,
@@ -26,7 +25,6 @@ public:
     ERROR_GAIN_SETTING_MODE_DISABLED,
     ERROR_CAN_SEND_FAILED,
     ERROR_WHEELS_ARE_MOVING,
-
   };
 
   WheelController();

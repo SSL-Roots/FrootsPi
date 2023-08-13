@@ -64,7 +64,8 @@ bool BatteryMonitor::open(const int pi)
     (FLAG_R << 15) |
     (FLAG_B << 16);
 
-  RCLCPP_DEBUG(LOGGER, "SPI FLAGS:" + std::bitset<22>(FLAGS).to_string());
+  auto message = "SPI FLAGS:" + std::bitset<22>(FLAGS).to_string();
+  RCLCPP_DEBUG(LOGGER, message.c_str());
 
   spi_handler_ = spi_open(pi, CHANNEL, BAUDRATE, FLAGS);
 
@@ -187,7 +188,8 @@ bool BatteryMonitor::read_adc(const char channel, float * read_data)
   tx_data[2] = 0x00;
 
   if (spi_xfer(pi_, spi_handler_, tx_data, rx_data, 3) < 0) {
-    RCLCPP_ERROR(LOGGER, "Failed to AD channel:" + std::to_string(channel));
+    auto message = "Failed to AD channel:" + std::to_string(channel);
+    RCLCPP_ERROR(LOGGER, message.c_str());
     return false;
   }
 

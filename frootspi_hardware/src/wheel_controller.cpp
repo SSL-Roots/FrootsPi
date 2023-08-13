@@ -240,7 +240,9 @@ WheelController::ErrorCode WheelController::set_d_gain(const double gain_d)
  * @retval WheelController::ERROR_GAIN_SETTING_MODE_DISABLED ゲイン設定モードが無効のため、ゲインを設定できない
  * @retval WheelController::ERROR_CAN_SEND_FAILED CAN送信に失敗した
 */
-WheelController::ErrorCode WheelController::set_pid_gain(const double gain_p, const double gain_i, const double gain_d)
+WheelController::ErrorCode WheelController::set_pid_gain(
+  const double gain_p, const double gain_i,
+  const double gain_d)
 {
   if (!is_gain_setting_enabled_) {
     return WheelController::ERROR_GAIN_SETTING_MODE_DISABLED;
@@ -264,9 +266,12 @@ bool WheelController::send_pid_gain()
   constexpr double COEFFICIENT_I = 1000000.0;
   constexpr double COEFFICIENT_D = 1000000.0;
 
-  int16_t int_gain_p = (int16_t)constrain(gain_p_ * COEFFICIENT_P, 0.0, (double)__INT16_MAX__);
-  int16_t int_gain_i = (int16_t)constrain(gain_i_ * COEFFICIENT_I, 0.0, (double)__INT16_MAX__);
-  int16_t int_gain_d = (int16_t)constrain(gain_d_ * COEFFICIENT_D, 0.0, (double)__INT16_MAX__);
+  int16_t int_gain_p = static_cast<int16_t>(
+    constrain(gain_p_ * COEFFICIENT_P, 0.0, static_cast<double>(__INT16_MAX__)));
+  int16_t int_gain_i = static_cast<int16_t>(
+    constrain(gain_i_ * COEFFICIENT_I, 0.0, static_cast<double>(__INT16_MAX__)));
+  int16_t int_gain_d = static_cast<int16_t>(
+    constrain(gain_d_ * COEFFICIENT_D, 0.0, static_cast<double>(__INT16_MAX__)));
 
   struct can_frame frame;
   frame.can_id = 0x1aa;
@@ -311,6 +316,3 @@ double WheelController::constrain(const double value, const double min, const do
     return value;
   }
 }
-
-
-
