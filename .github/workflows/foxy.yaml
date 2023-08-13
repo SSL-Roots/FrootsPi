@@ -35,6 +35,7 @@ jobs:
         run: |
           . /opt/ros/foxy/setup.sh
           cd ros2_ws/src
+          git clone https://github.com/SSL-Roots/consai_frootspi_msgs.git
           apt update
           rosdep update
           rosdep install -r -y -i --from-paths .
