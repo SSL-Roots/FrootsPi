@@ -80,8 +80,8 @@ void WheelVector::robotVelToWheelRotateVels(
   const double CONST_V0_COEFFICIENT_VX_ = 0.8660254, CONST_V0_COEFFICIENT_VY_ = 0.5;
   const double CONST_V1_COEFFICIENT_VX_ = -0.8660254, CONST_V1_COEFFICIENT_VY_ = 0.5;
   const double CONST_V2_COEFFICIENT_VX_ = 0, CONST_V2_COEFFICIENT_VY_ = -1;
-  const double CONST_MACHINE_RADIUS_ = 0.07;
-  const double CONST_WHEEL_RADIUS_ = 0.028;
+  const double CONST_MACHINE_RADIUS_ = 0.08;
+  const double CONST_WHEEL_RADIUS_ = 0.025;
 
   double v0_mps = (CONST_V0_COEFFICIENT_VX_ * vx) + (CONST_V0_COEFFICIENT_VY_ * vy) +
     (CONST_MACHINE_RADIUS_ * vw );

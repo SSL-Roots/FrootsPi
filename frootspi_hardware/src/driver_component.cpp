@@ -47,6 +47,7 @@ static const int DRIBBLE_PWM_DUTY_CYCLE = 1e6 / DRIBBLE_PWM_FREQUENCY;  // usec
 static const int GPIO_CENTER_LED = 14;
 static const int GPIO_RIGHT_LED = 4;
 
+
 Driver::Driver(const rclcpp::NodeOptions & options)
 : rclcpp::Node("hardware_driver", options),
   pi_(-1), enable_kicker_charging_(false), discharge_kick_count_(0)
@@ -54,8 +55,10 @@ Driver::Driver(const rclcpp::NodeOptions & options)
   using namespace std::placeholders;  // for _1, _2, _3...
 
   // GPIOを定期的にread / writeするためのタイマー
-  polling_timer_ = create_wall_timer(1ms, std::bind(&Driver::on_polling_timer, this));
-  polling_timer_->cancel();  // ノードがActiveになるまでタイマーオフ
+  high_rate_polling_timer_ = create_wall_timer(1ms, std::bind(&Driver::on_high_rate_polling_timer, this));
+  high_rate_polling_timer_->cancel();  // ノードがActiveになるまでタイマーオフ
+  low_rate_polling_timer_ = create_wall_timer(1000ms, std::bind(&Driver::on_low_rate_polling_timer, this));
+  low_rate_polling_timer_->cancel();  // ノードがActiveになるまでタイマーオフ
   // コンデンサ放電時に使うタイマー
   discharge_kicker_timer_ =
     create_wall_timer(500ms, std::bind(&Driver::on_discharge_kicker_timer, this));
@@ -87,6 +90,16 @@ Driver::Driver(const rclcpp::NodeOptions & options)
     "set_center_led", std::bind(&Driver::on_set_center_led, this, _1, _2));
   srv_set_right_led_ = create_service<std_srvs::srv::SetBool>(
     "set_right_led", std::bind(&Driver::on_set_right_led, this, _1, _2));
+  srv_enable_gain_setting_ = create_service<std_srvs::srv::SetBool>(
+    "enable_gain_setting", std::bind(&Driver::on_enable_gain_setting, this, _1, _2));
+
+  // パラメータ作成
+  this->declare_parameter("wheel_gain_p", 0.009);
+  this->declare_parameter("wheel_gain_i", 0.001);
+  this->declare_parameter("wheel_gain_d", 0.001);
+
+  set_parameters_callback_handle_ = this->add_on_set_parameters_callback(
+      std::bind(&frootspi_hardware::Driver::parametersCallback, this, std::placeholders::_1));
 
   pi_ = pigpio_start(NULL, NULL);
 
@@ -166,15 +179,17 @@ Driver::Driver(const rclcpp::NodeOptions & options)
   sub_wheel_timestamp_ = steady_clock_.now();
   timeout_has_printed_ = false;
 
-  // polling timer reset
-  polling_timer_->reset();
+  // polling timer reset 
+  high_rate_polling_timer_->reset();
+  low_rate_polling_timer_->reset();
 
   gpio_write(pi_, GPIO_KICK_SUPPLY_POWER, PI_HIGH);
 }
 
 Driver::~Driver()
 {
-  polling_timer_->cancel();
+  high_rate_polling_timer_->cancel();
+  low_rate_polling_timer_->cancel();
 
   gpio_write(pi_, GPIO_DRIBBLE_PWM, PI_HIGH);  // 負論理のためHighでモータオフ
   // lcd_driver_.write_texts("ROS 2", "SHUTDOWN");
@@ -190,64 +205,98 @@ Driver::~Driver()
   pigpio_stop(pi_);
 }
 
-void Driver::on_polling_timer()
+rcl_interfaces::msg::SetParametersResult Driver::parametersCallback(
+    const std::vector<rclcpp::Parameter> &parameters)
 {
-  // ボール検出をパブリッシュ
-  auto ball_detection_msg = std::make_unique<frootspi_msgs::msg::BallDetection>();
-  ball_detection_msg->detected = gpio_read(pi_, gpio_ball_sensor_);
-  front_indicate_data_.Parameter.BallSens = ball_detection_msg->detected;
-  pub_ball_detection_->publish(std::move(ball_detection_msg));
+  rcl_interfaces::msg::SetParametersResult result;
+  // Here update class attributes, do some actions, etc.
 
-  // バッテリー電圧をパブリッシュ
-  auto battery_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
-  battery_monitor_.main_battery_info_read(
-    battery_voltage_msg->voltage, battery_voltage_msg->voltage_status);
-  front_indicate_data_.Parameter.BatVol = (unsigned char)(battery_voltage_msg->voltage * 10);
-  // frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_FULL;
-  pub_battery_voltage_->publish(std::move(battery_voltage_msg));
+  WheelController::ErrorCode gain_setting_result = WheelController::ErrorCode::ERROR_NONE;
 
-  // UPS(無停電電源装置)電圧をパブリッシュ
-  auto ups_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
-  battery_monitor_.sub_battery_info_read(
-    ups_voltage_msg->voltage, ups_voltage_msg->voltage_status);
-  // frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_TOO_LOW;
-  pub_ups_voltage_->publish(std::move(ups_voltage_msg));
-
-  // キッカー（昇圧回路）電圧をパブリッシュ
-  capacitor_monitor_prescaler_count_++;
-  if (capacitor_monitor_prescaler_count_ > 50) {
-    auto kicker_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
-    capacitor_monitor_.capacitor_info_read(
-      kicker_voltage_msg->voltage, kicker_voltage_msg->voltage_status);
-    front_indicate_data_.Parameter.CapVol = (unsigned char)(kicker_voltage_msg->voltage);
-    if (kicker_voltage_msg->voltage_status >=
-      frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_OK)
+  for (auto &&param : parameters)
+  {
+    if (param.get_name() == "wheel_gain_p")
     {
-      front_indicate_data_.Parameter.CapacitorSta = true;
-    } else {
-      front_indicate_data_.Parameter.CapacitorSta = false;
+      gain_setting_result = wheel_controller_.set_p_gain(param.as_double());
+      if (gain_setting_result != WheelController::ErrorCode::ERROR_NONE) break;
     }
-    pub_kicker_voltage_->publish(std::move(kicker_voltage_msg));
-    capacitor_monitor_prescaler_count_ = 0;
+    else if (param.get_name() == "wheel_gain_i")
+    {
+      gain_setting_result = wheel_controller_.set_i_gain(param.as_double());
+      if (gain_setting_result != WheelController::ErrorCode::ERROR_NONE) break;
+    }
+    else if (param.get_name() == "wheel_gain_d")
+    {
+      gain_setting_result = wheel_controller_.set_d_gain(param.as_double());
+      if (gain_setting_result != WheelController::ErrorCode::ERROR_NONE) break;
+    }
   }
 
+  if (gain_setting_result == WheelController::ErrorCode::ERROR_NONE)
+  {
+    result.successful = true;
+    result.reason = "success";
+  }
+  else if (gain_setting_result == WheelController::ErrorCode::ERROR_GAIN_SETTING_MODE_DISABLED) {
+    result.successful = false;
+    result.reason = "ゲイン設定モードが無効になっています";
+  } else if (gain_setting_result == WheelController::ErrorCode::ERROR_CAN_SEND_FAILED) {
+    result.successful = false;
+    result.reason = "CAN送信に失敗しました";
+  }
 
-  // スイッチ状態をパブリッシュ
-  auto switches_state_msg = std::make_unique<frootspi_msgs::msg::SwitchesState>();
+  return result;
+}
+
+void Driver::on_high_rate_polling_timer()
+{
+  // ボール検出 変化があった場合のみpublish
+  bool ball_detection = gpio_read(pi_, gpio_ball_sensor_);
+  if (ball_detection != this->latest_ball_detection_) 
+  {
+  auto ball_detection_msg = std::make_unique<frootspi_msgs::msg::BallDetection>();
+    ball_detection_msg->detected = ball_detection;
+  pub_ball_detection_->publish(std::move(ball_detection_msg));
+  }
+  this->latest_ball_detection_ = ball_detection;
+  front_indicate_data_.Parameter.BallSens = ball_detection;
+
+  // スイッチ状態をRead 変化があった場合のみpublish
+  bool pushed_button0, pushed_button1, pushed_button2, pushed_button3, turned_on_dip0, turned_on_dip1;
   io_expander_.read(
-    switches_state_msg->pushed_button0, switches_state_msg->pushed_button1,
-    switches_state_msg->pushed_button2, switches_state_msg->pushed_button3,
-    switches_state_msg->turned_on_dip0, switches_state_msg->turned_on_dip1);
-  // シャットダウンスイッチは負論理なので、XORでビット反転させる
-  switches_state_msg->pushed_shutdown = gpio_read(pi_, GPIO_SHUTDOWN_SWITCH) ^ 1;
-  pub_switches_state_->publish(std::move(switches_state_msg));
+    pushed_button0, pushed_button1, pushed_button2, pushed_button3,
+    turned_on_dip0, turned_on_dip1);
+  bool pushed_shutdown = gpio_read(pi_, GPIO_SHUTDOWN_SWITCH) ^ 1;  // シャットダウンスイッチは負論理なので、XORでビット反転させる
+  if (pushed_button0 != this->latest_pushed_button0_ ||
+      pushed_button1 != this->latest_pushed_button1_ ||
+      pushed_button2 != this->latest_pushed_button2_ ||
+      pushed_button3 != this->latest_pushed_button3_ ||
+      turned_on_dip0 != this->latest_turned_on_dip0_ ||
+      turned_on_dip1 != this->latest_turned_on_dip1_ ||
+      pushed_shutdown != this->latest_pushed_shutdown_) 
+  {
+    auto switches_state_msg = std::make_unique<frootspi_msgs::msg::SwitchesState>();
+    switches_state_msg->pushed_button0 = pushed_button0;
+    switches_state_msg->pushed_button1 = pushed_button1;
+    switches_state_msg->pushed_button2 = pushed_button2;
+    switches_state_msg->pushed_button3 = pushed_button3;
+    switches_state_msg->turned_on_dip0 = turned_on_dip0;
+    switches_state_msg->turned_on_dip1 = turned_on_dip1;
+    switches_state_msg->pushed_shutdown = pushed_shutdown;
+    pub_switches_state_->publish(std::move(switches_state_msg));
+
+    // 情報更新
+    this->latest_pushed_button0_ = pushed_button0;
+    this->latest_pushed_button1_ = pushed_button1;
+    this->latest_pushed_button2_ = pushed_button2;
+    this->latest_pushed_button3_ = pushed_button3;
+    this->latest_turned_on_dip0_ = turned_on_dip0;
+    this->latest_turned_on_dip1_ = turned_on_dip1;
+    this->latest_pushed_shutdown_ = pushed_shutdown;
+  }
 
   // オムニホイール回転速度をパブリッシュ
-  auto wheel_velocities_msg = std::make_unique<frootspi_msgs::msg::WheelVelocities>();
-  wheel_velocities_msg->front_left = 1.0;  // 左前ホイール回転速度 [rad/sec]
-  wheel_velocities_msg->front_right = 1.0;  // 右前ホイール回転速度 [rad/sec]
-  wheel_velocities_msg->back_center = 1.0;  // 後ホイール回転速度 [rad/sec]
-  pub_present_wheel_velocities_->publish(std::move(wheel_velocities_msg));
+  // TODO: implement
 
   // IMUセンサの情報をパブリッシュ
 
@@ -275,6 +324,36 @@ void Driver::on_polling_timer()
   //   front_display_prescaler_count_ = 0;
   // }
 }
+
+
+void Driver::on_low_rate_polling_timer()
+{
+  // バッテリー電圧をパブリッシュ
+  auto battery_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
+  battery_monitor_.main_battery_info_read(
+    battery_voltage_msg->voltage, battery_voltage_msg->voltage_status);
+  front_indicate_data_.Parameter.BatVol = (unsigned char)(battery_voltage_msg->voltage*10);
+  pub_battery_voltage_->publish(std::move(battery_voltage_msg));
+
+  // UPS(無停電電源装置)電圧をパブリッシュ
+  auto ups_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
+  battery_monitor_.sub_battery_info_read(
+    ups_voltage_msg->voltage, ups_voltage_msg->voltage_status);
+  pub_ups_voltage_->publish(std::move(ups_voltage_msg));
+
+  // キッカー（昇圧回路）電圧をパブリッシュ
+  auto kicker_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
+  capacitor_monitor_.capacitor_info_read(
+    kicker_voltage_msg->voltage, kicker_voltage_msg->voltage_status);
+  front_indicate_data_.Parameter.CapVol = (unsigned char)(kicker_voltage_msg->voltage);
+  if(kicker_voltage_msg->voltage_status >= frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_OK){
+    front_indicate_data_.Parameter.CapacitorSta = true;
+  } else {
+    front_indicate_data_.Parameter.CapacitorSta = false;
+  }
+  pub_kicker_voltage_->publish(std::move(kicker_voltage_msg));
+}
+
 
 void Driver::on_discharge_kicker_timer()
 {
@@ -334,37 +413,56 @@ void Driver::on_kick(
   const frootspi_msgs::srv::Kick::Request::SharedPtr request,
   frootspi_msgs::srv::Kick::Response::SharedPtr response)
 {
-  const int MAX_SLEEP_TIME_MSEC_FOR_STRAIGHT = 25;
-  const double MAX_KICK_SPEED = 6.5;  // m/s
+  const int MAX_SLEEP_TIME_USEC_FOR_STRAIGHT = 5000;
 
   front_indicate_data_.Parameter.KickReq = true;
 
   if (request->kick_type == frootspi_msgs::srv::Kick::Request::KICK_TYPE_STRAIGHT) {
     // ストレートキック
-
-    // kick_power を 0.0 ~ 1.0に落とし込む
-    double kick_power = request->kick_power / MAX_KICK_SPEED;
-    if (kick_power > 1.0) {
-      kick_power = 1.0;
-    } else if (kick_power < 0) {
-      kick_power = 0;
+    uint32_t sleep_time_usec = 673 * request->kick_power + 100; // constants based on test
+    if (sleep_time_usec > MAX_SLEEP_TIME_USEC_FOR_STRAIGHT) {
+      sleep_time_usec = MAX_SLEEP_TIME_USEC_FOR_STRAIGHT;
     }
-    int sleep_time_msec = MAX_SLEEP_TIME_MSEC_FOR_STRAIGHT * kick_power;
-
-    // キックをする際は充電を停止する
-    gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_LOW);
+    
     // GPIOをHIGHにしている時間を変化させて、キックパワーを変更する
-    gpio_write(pi_, GPIO_KICK_STRAIGHT, PI_HIGH);
-    rclcpp::sleep_for(std::chrono::milliseconds(sleep_time_msec));
-    gpio_write(pi_, GPIO_KICK_STRAIGHT, PI_LOW);
+    uint32_t bit_kick_straight = 1 << GPIO_KICK_STRAIGHT;
+    uint32_t bit_kick_enable_charge = 1 << GPIO_KICK_ENABLE_CHARGE;
+    uint32_t bit_kick_enable_charge_masked = enable_kicker_charging_ ? bit_kick_enable_charge : 0;
 
-    if (enable_kicker_charging_) {
-      // 充電許可が出ていれば、充電を再開する
-      gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_HIGH);
+    gpioPulse_t pulses[] = {
+        {0,                             bit_kick_enable_charge, 100},             // 充電を停止する
+        {bit_kick_straight,             0,                      sleep_time_usec}, // キックON
+        {0,                             bit_kick_straight,      100},             // キックOFF
+        {bit_kick_enable_charge_masked, 0,                      0},               // 充電を再開する
+    };
+    
+    wave_clear(pi_);
+    int num_pulse = wave_add_generic(pi_, sizeof(pulses)/sizeof(gpioPulse_t), pulses);
+    if (num_pulse < 0) {
+      RCLCPP_ERROR(this->get_logger(), "Failed to add wave.");
+      response->success = false;
+      response->message = "キック処理に失敗しました";
+      return;
+    }
+
+    int wave_id = wave_create(pi_);
+    if (wave_id < 0) {
+      RCLCPP_ERROR(this->get_logger(), "Failed to create wave.");
+      response->success = false;
+      response->message = "キック処理に失敗しました";
+      return;
+    }
+
+    int result = wave_send_once(pi_, wave_id);
+    if (result < 0) {
+      RCLCPP_ERROR(this->get_logger(), "Failed to send wave.");
+      response->success = false;
+      response->message = "キック処理に失敗しました";
+      return;
     }
 
     response->success = true;
-    response->message = std::to_string(sleep_time_msec) + " ミリ秒間ソレノイドをONしました";
+    response->message = std::to_string(sleep_time_usec) + " ミリ秒間ソレノイドをONしました";
 
   } else if (request->kick_type == frootspi_msgs::srv::Kick::Request::KICK_TYPE_CHIP) {
     // チップキックは未実装
@@ -462,6 +560,37 @@ void Driver::on_set_right_led(
   }
 }
 
+void Driver::on_enable_gain_setting(
+    const std_srvs::srv::SetBool::Request::SharedPtr request,
+    std_srvs::srv::SetBool::Response::SharedPtr response)
+{
+  if (request->data)
+  {
+    // ゲイン設定を有効にする
+    WheelController::ErrorCode error_code = wheel_controller_.enable_gain_setting();
+    if (error_code == WheelController::ErrorCode::ERROR_NONE)
+    {
+      response->success = true;
+      response->message = "ゲイン設定モードを有効にしました。車輪が回らなくなります。";
+    } else if (error_code == WheelController::ErrorCode::ERROR_WHEELS_ARE_MOVING) {
+      response->success = false;
+      response->message = "車輪が回転しているため、ゲイン設定モードを有効にできませんでした。";
+    }
+  }
+  else
+  {
+    // ゲイン設定を無効にする
+    WheelController::ErrorCode error_code = wheel_controller_.disable_gain_setting();
+    if (error_code == WheelController::ErrorCode::ERROR_NONE)
+    {
+      response->success = true;
+      response->message = "ゲイン設定モードを無効にしました。車輪が回せます。";
+    } else {
+      response->success = false;
+      response->message = "ゲイン設定モードを無効にできませんでした。";
+    }
+  }
+}
 
 }  // namespace frootspi_hardware
 
