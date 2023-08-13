@@ -67,7 +67,7 @@ private:
 
   // client callbacks
 
-  
+
   void set_kick(int set_kick_type_, float set_kick_power);
   void set_charge(bool charge_enable);
 

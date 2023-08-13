@@ -17,22 +17,23 @@
 
 #include <string>
 
-union FrontIndicateData{
-    char Indicate_data[5];
-    struct{
-        unsigned char    RobotID         :4;
-        char    RobotMode       :2;
-        bool    ComAIPC         :1;
-        bool    BallSens        :1;
-        unsigned char    BatVol          :8;
-        unsigned char    CapVol          :8;
-        unsigned char    ComCount        :8;
-        bool    KickReq         :1;
-        bool    DribbleReq      :1;
-        bool    ChargeReq       :1;
-        bool    CapacitorSta    :1;
-        char    Dummy           :4;
-    }Parameter;
+union FrontIndicateData {
+  char Indicate_data[5];
+  struct
+  {
+    unsigned char RobotID         : 4;
+    char RobotMode       : 2;
+    bool ComAIPC         : 1;
+    bool BallSens        : 1;
+    unsigned char BatVol          : 8;
+    unsigned char CapVol          : 8;
+    unsigned char ComCount        : 8;
+    bool KickReq         : 1;
+    bool DribbleReq      : 1;
+    bool ChargeReq       : 1;
+    bool CapacitorSta    : 1;
+    char Dummy           : 4;
+  } Parameter;
 };
 
 class FrontDisplayCommunicator
@@ -46,7 +47,6 @@ public:
   bool send_data(FrontIndicateData * front_indicate_data);
 
 private:
- 
   int i2c_handler_;
   int pi_;
 };

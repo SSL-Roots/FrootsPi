@@ -25,6 +25,7 @@ from pathlib import Path
 
 DEFAULT_FILE_PATH = Path.home() / Path("robot_config.yaml")
 
+
 def get_configuration_from_file(file_path):
     # TODO: 引数でコンフィグファイルのパスを指定する
 
@@ -33,6 +34,7 @@ def get_configuration_from_file(file_path):
         config = yaml.safe_load(f)
         print(f"Read robot config from {file_path}")
     return config
+
 
 def generate_launch_description():
     # configからRobot IDを取得

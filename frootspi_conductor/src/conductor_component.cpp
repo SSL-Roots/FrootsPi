@@ -66,7 +66,7 @@ void Conductor::on_polling_timer()
   }
 
   // 充電許可サービスをコールする
-  if(client_charge_request_->wait_for_service(std::chrono::seconds(1))){
+  if (client_charge_request_->wait_for_service(std::chrono::seconds(1))) {
     auto request = std::make_shared<std_srvs::srv::SetBool::Request>();
     request->data = enable_charge;
     auto result = client_charge_request_->async_send_request(request);

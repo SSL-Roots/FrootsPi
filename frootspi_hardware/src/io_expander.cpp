@@ -92,8 +92,8 @@ bool IOExpander::open(const int pi)
 
   if (read_data != write_data) {
     auto message = "Failed to set IODIR register to " +
-        std::bitset<8>(write_data).to_string() +
-        ", actual:" + std::bitset<8>(read_data).to_string();
+      std::bitset<8>(write_data).to_string() +
+      ", actual:" + std::bitset<8>(read_data).to_string();
     RCLCPP_ERROR(LOGGER, message.c_str());
     return false;
   }
@@ -177,9 +177,8 @@ bool IOExpander::control_register(
   tx_data[2] = write_data;
 
   if (spi_xfer(pi_, spi_handler_, tx_data, rx_data, 3) < 0) {
-
     auto message = "Failed to transfer addr:" + std::to_string(
-        addr) + ", write_data:" + std::to_string(write_data);
+      addr) + ", write_data:" + std::to_string(write_data);
     RCLCPP_ERROR(LOGGER, message.c_str());
     return false;
   }

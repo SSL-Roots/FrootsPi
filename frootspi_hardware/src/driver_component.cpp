@@ -166,7 +166,7 @@ Driver::Driver(const rclcpp::NodeOptions & options)
   sub_wheel_timestamp_ = steady_clock_.now();
   timeout_has_printed_ = false;
 
-  // polling timer reset 
+  // polling timer reset
   polling_timer_->reset();
 
   gpio_write(pi_, GPIO_KICK_SUPPLY_POWER, PI_HIGH);
@@ -202,7 +202,7 @@ void Driver::on_polling_timer()
   auto battery_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
   battery_monitor_.main_battery_info_read(
     battery_voltage_msg->voltage, battery_voltage_msg->voltage_status);
-  front_indicate_data_.Parameter.BatVol = (unsigned char)(battery_voltage_msg->voltage*10);
+  front_indicate_data_.Parameter.BatVol = (unsigned char)(battery_voltage_msg->voltage * 10);
   // frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_FULL;
   pub_battery_voltage_->publish(std::move(battery_voltage_msg));
 
@@ -215,12 +215,14 @@ void Driver::on_polling_timer()
 
   // キッカー（昇圧回路）電圧をパブリッシュ
   capacitor_monitor_prescaler_count_++;
-  if(capacitor_monitor_prescaler_count_ > 50){
+  if (capacitor_monitor_prescaler_count_ > 50) {
     auto kicker_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
     capacitor_monitor_.capacitor_info_read(
       kicker_voltage_msg->voltage, kicker_voltage_msg->voltage_status);
     front_indicate_data_.Parameter.CapVol = (unsigned char)(kicker_voltage_msg->voltage);
-    if(kicker_voltage_msg->voltage_status >= frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_OK){
+    if (kicker_voltage_msg->voltage_status >=
+      frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_OK)
+    {
       front_indicate_data_.Parameter.CapacitorSta = true;
     } else {
       front_indicate_data_.Parameter.CapacitorSta = false;
@@ -262,7 +264,7 @@ void Driver::on_polling_timer()
   } else {
     timeout_has_printed_ = false;
   }
-  
+
   // フロント基板へ情報を送信
   // front_display_prescaler_count_++;
   // if((front_display_prescaler_count_ > 100) && (capacitor_monitor_prescaler_count_ != 0)){
@@ -307,12 +309,12 @@ void Driver::callback_dribble_power(const frootspi_msgs::msg::DribblePower::Shar
     power = 0.0;
   }
 
-  if(power > 0){
+  if (power > 0) {
     front_indicate_data_.Parameter.DribbleReq = true;
   } else {
     front_indicate_data_.Parameter.DribbleReq = false;
   }
-  
+
   // 負論理のため反転
   // 少数を切り上げるため0.1を足す (例：20.0 -> 19となるので、20.1 -> 20とさせる)
   int dribble_duty_cycle = DRIBBLE_PWM_DUTY_CYCLE * (1.0 - power) + 0.1;
