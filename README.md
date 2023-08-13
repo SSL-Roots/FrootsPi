@@ -35,6 +35,7 @@ $ sudo apt install python-setuptools python3-setuptools
 $ mkdir -p ~/ros2_ws/src
 $ cd ~/ros2_ws/src
 $ git clone https://github.com/SSL-Roots/FrootsPi
+$ git clone https://github.com/SSL-Roots/frootspi_msgs.git
 $ git clone https://github.com/SSL-Roots/consai_frootspi_msgs.git
 
 # Install dependencies

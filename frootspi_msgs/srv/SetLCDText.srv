@@ -1,9 +1,0 @@
-# LCDにセットするテキスト
-# text1が上段、text2が下段
-string text1
-string text2
----
-# セットに成功したらtrueを返す
-bool success
-# セット結果の詳細。エラー情報を返してもよし
-string message
