@@ -32,7 +32,7 @@ $ sudo apt install python-setuptools python3-setuptools
 ### Install simpleaudio
 
 ```sh
-$ sudo apt install -y python3-pip libasound2-dev
+$ sudo apt install -y python3-pip libasound2-dev alsa-utils
 $ pip3 install simpleaudio
 ```
 
