@@ -430,13 +430,13 @@ void Driver::on_kick(
   const frootspi_msgs::srv::Kick::Request::SharedPtr request,
   frootspi_msgs::srv::Kick::Response::SharedPtr response)
 {
-  const int MAX_SLEEP_TIME_USEC_FOR_STRAIGHT = 5000;
+  const int MAX_SLEEP_TIME_USEC_FOR_STRAIGHT = 30000;
 
   front_indicate_data_.Parameter.KickReq = true;
 
   if (request->kick_type == frootspi_msgs::srv::Kick::Request::KICK_TYPE_STRAIGHT) {
     // ストレートキック
-    uint32_t sleep_time_usec = 673 * request->kick_power + 100;  // constants based on test
+    uint32_t sleep_time_usec = 4000 * request->kick_power + 100;  // constants based on test
     if (sleep_time_usec > MAX_SLEEP_TIME_USEC_FOR_STRAIGHT) {
       sleep_time_usec = MAX_SLEEP_TIME_USEC_FOR_STRAIGHT;
     }
@@ -479,7 +479,7 @@ void Driver::on_kick(
     }
 
     response->success = true;
-    response->message = std::to_string(sleep_time_usec) + " ミリ秒間ソレノイドをONしました";
+    response->message = std::to_string(sleep_time_usec) + " usec間ソレノイドをONしました";
 
     publish_speaker_voice(SpeakerVoice::VOICE_KICK_EXECUTE);
 
