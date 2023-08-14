@@ -313,6 +313,10 @@ void Driver::on_high_rate_polling_timer()
     }
   } else {
     timeout_has_printed_ = false;
+    // 直前の状態がタイムアウトだった場合
+    if (timeout_has_printed_) {
+      publish_speaker_voice(SpeakerVoice::VOICE_COMM_CONNECT);
+    }
   }
 
   // フロント基板へ情報を送信
@@ -335,6 +339,11 @@ void Driver::on_low_rate_polling_timer()
     battery_voltage_msg->voltage, battery_voltage_msg->voltage_status);
   front_indicate_data_.Parameter.BatVol = (unsigned char)(battery_voltage_msg->voltage * 10);
   pub_battery_voltage_->publish(std::move(battery_voltage_msg));
+
+  // バッテリー電圧が低い場合
+  if (battery_voltage_msg->voltage_status == frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_TOO_LOW) {
+    publish_speaker_voice(SpeakerVoice::VOICE_BATTERY_LOW);
+  }
 
   // UPS(無停電電源装置)電圧をパブリッシュ
   auto ups_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
