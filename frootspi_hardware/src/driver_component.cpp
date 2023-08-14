@@ -308,6 +308,8 @@ void Driver::on_high_rate_polling_timer()
         this->get_logger(),
         "通信タイムアウトのため、ホイールの回転速度を0 rad/sにします");
       timeout_has_printed_ = true;
+      // 音声再生のためにpublish
+      publish_speaker_voice(SpeakerVoice::VOICE_COMM_DISCONNECT);
     }
   } else {
     timeout_has_printed_ = false;
