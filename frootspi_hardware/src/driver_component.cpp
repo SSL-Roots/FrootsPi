@@ -462,9 +462,7 @@ void Driver::on_kick(
     response->success = true;
     response->message = std::to_string(sleep_time_usec) + " ミリ秒間ソレノイドをONしました";
 
-    auto voice_msg = std::make_unique<SpeakerVoice>();
-    voice_msg->voice_type = SpeakerVoice::VOICE_KICK_EXECUTE;
-    pub_speaker_voice_->publish(std::move(voice_msg));
+    publish_speaker_voice(SpeakerVoice::VOICE_KICK_EXECUTE);
 
   } else if (request->kick_type == frootspi_msgs::srv::Kick::Request::KICK_TYPE_CHIP) {
     // チップキックは未実装
@@ -587,6 +585,13 @@ void Driver::on_enable_gain_setting(
       response->message = "ゲイン設定モードを無効にできませんでした。";
     }
   }
+}
+
+void Driver::publish_speaker_voice(const uint8_t & voice_type)
+{
+  auto voice_msg = std::make_unique<SpeakerVoice>();
+  voice_msg->voice_type = voice_type;
+  pub_speaker_voice_->publish(std::move(voice_msg));
 }
 
 }  // namespace frootspi_hardware

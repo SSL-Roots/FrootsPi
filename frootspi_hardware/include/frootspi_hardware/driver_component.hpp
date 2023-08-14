@@ -82,6 +82,7 @@ private:
   void on_enable_gain_setting(
     const std_srvs::srv::SetBool::Request::SharedPtr request,
     std_srvs::srv::SetBool::Response::SharedPtr response);
+  void publish_speaker_voice(const uint8_t & voice_type);
 
   std::shared_ptr<rclcpp::Publisher<frootspi_msgs::msg::BallDetection>>
   pub_ball_detection_;
