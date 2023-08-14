@@ -74,6 +74,7 @@ Driver::Driver(const rclcpp::NodeOptions & options)
   pub_present_wheel_velocities_ = create_publisher<frootspi_msgs::msg::WheelVelocities>(
     "present_wheel_velocities", 1);
   pub_imu_ = create_publisher<sensor_msgs::msg::Imu>("imu", 1);
+  pub_speaker_voice_ = create_publisher<SpeakerVoice>("speaker_voice", 1);
 
   sub_dribble_power_ = create_subscription<frootspi_msgs::msg::DribblePower>(
     "dribble_power", 1, std::bind(&Driver::callback_dribble_power, this, _1));
@@ -460,6 +461,10 @@ void Driver::on_kick(
 
     response->success = true;
     response->message = std::to_string(sleep_time_usec) + " ミリ秒間ソレノイドをONしました";
+
+    auto voice_msg = std::make_unique<SpeakerVoice>();
+    voice_msg->voice_type = SpeakerVoice::VOICE_KICK_EXECUTE;
+    pub_speaker_voice_->publish(std::move(voice_msg));
 
   } else if (request->kick_type == frootspi_msgs::srv::Kick::Request::KICK_TYPE_CHIP) {
     // チップキックは未実装
