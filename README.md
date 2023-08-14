@@ -29,6 +29,13 @@ $ sudo make install
 $ sudo apt install python-setuptools python3-setuptools
 ```
 
+### Install simpleaudio
+
+```sh
+$ sudo apt install -y python3-pip libasound2-dev
+$ pip3 install simpleaudio
+```
+
 ### Install FrootsPi
 
 ```sh
