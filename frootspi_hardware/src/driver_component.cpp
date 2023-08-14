@@ -251,6 +251,9 @@ void Driver::on_high_rate_polling_timer()
     auto ball_detection_msg = std::make_unique<frootspi_msgs::msg::BallDetection>();
     ball_detection_msg->detected = ball_detection;
     pub_ball_detection_->publish(std::move(ball_detection_msg));
+    if (ball_detection) {
+        publish_speaker_voice(SpeakerVoice::VOICE_BALL_CATCH);
+    }
   }
   this->latest_ball_detection_ = ball_detection;
   front_indicate_data_.Parameter.BallSens = ball_detection;
