@@ -251,6 +251,7 @@ void Driver::on_high_rate_polling_timer()
     auto ball_detection_msg = std::make_unique<frootspi_msgs::msg::BallDetection>();
     ball_detection_msg->detected = ball_detection;
     pub_ball_detection_->publish(std::move(ball_detection_msg));
+    // ボール検出をした場合に音声再生
     if (ball_detection) {
         publish_speaker_voice(SpeakerVoice::VOICE_BALL_CATCH);
     }
@@ -491,6 +492,9 @@ void Driver::on_kick(
 
     response->success = true;
     response->message = "放電を開始しました";
+
+    // 放電開始時に音声再生
+    publish_speaker_voice(SpeakerVoice::VOICE_KICK_DISCHARGE);
   } else {
     // 未定義のキックタイプ
     response->success = false;
@@ -511,12 +515,18 @@ void Driver::on_set_kicker_charging(
     RCLCPP_INFO(this->get_logger(), "キッカーの充電開始.");
     response->message = "充電を開始しました";
     front_indicate_data_.Parameter.ChargeReq = true;
+
+    // 充電開始時に音声再生
+    publish_speaker_voice(SpeakerVoice::VOICE_CHARGER_START);
   } else {
     gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_LOW);
     enable_kicker_charging_ = false;
     RCLCPP_INFO(this->get_logger(), "キッカーの充電停止.");
     response->message = "充電を停止しました";
     front_indicate_data_.Parameter.ChargeReq = false;
+
+    // 充電停止時に音声再生
+    publish_speaker_voice(SpeakerVoice::VOICE_CHARGER_STOP);
   }
 
   response->success = true;
