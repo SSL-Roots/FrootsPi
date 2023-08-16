@@ -31,6 +31,7 @@
 #include "frootspi_msgs/msg/ball_detection.hpp"
 #include "frootspi_msgs/msg/battery_voltage.hpp"
 #include "frootspi_msgs/msg/dribble_power.hpp"
+#include "frootspi_msgs/msg/speaker_voice.hpp"
 #include "frootspi_msgs/msg/switches_state.hpp"
 #include "frootspi_msgs/msg/wheel_velocities.hpp"
 #include "frootspi_msgs/srv/kick.hpp"
@@ -42,6 +43,8 @@
 
 namespace frootspi_hardware
 {
+
+using SpeakerVoice = frootspi_msgs::msg::SpeakerVoice;
 
 class Driver : public rclcpp::Node
 {
@@ -79,6 +82,7 @@ private:
   void on_enable_gain_setting(
     const std_srvs::srv::SetBool::Request::SharedPtr request,
     std_srvs::srv::SetBool::Response::SharedPtr response);
+  void publish_speaker_voice(const uint8_t & voice_type);
 
   std::shared_ptr<rclcpp::Publisher<frootspi_msgs::msg::BallDetection>>
   pub_ball_detection_;
@@ -93,6 +97,7 @@ private:
   std::shared_ptr<rclcpp::Publisher<frootspi_msgs::msg::WheelVelocities>>
   pub_present_wheel_velocities_;
   std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::Imu>> pub_imu_;
+  std::shared_ptr<rclcpp::Publisher<SpeakerVoice>> pub_speaker_voice_;
 
   std::shared_ptr<rclcpp::Subscription<frootspi_msgs::msg::DribblePower>> sub_dribble_power_;
   std::shared_ptr<rclcpp::Subscription<frootspi_msgs::msg::WheelVelocities>>

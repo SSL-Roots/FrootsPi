@@ -74,6 +74,7 @@ Driver::Driver(const rclcpp::NodeOptions & options)
   pub_present_wheel_velocities_ = create_publisher<frootspi_msgs::msg::WheelVelocities>(
     "present_wheel_velocities", 1);
   pub_imu_ = create_publisher<sensor_msgs::msg::Imu>("imu", 1);
+  pub_speaker_voice_ = create_publisher<SpeakerVoice>("speaker_voice", 1);
 
   sub_dribble_power_ = create_subscription<frootspi_msgs::msg::DribblePower>(
     "dribble_power", 1, std::bind(&Driver::callback_dribble_power, this, _1));
@@ -250,6 +251,10 @@ void Driver::on_high_rate_polling_timer()
     auto ball_detection_msg = std::make_unique<frootspi_msgs::msg::BallDetection>();
     ball_detection_msg->detected = ball_detection;
     pub_ball_detection_->publish(std::move(ball_detection_msg));
+    // ボール検出をした場合に音声再生
+    if (ball_detection) {
+      publish_speaker_voice(SpeakerVoice::VOICE_BALL_CATCH);
+    }
   }
   this->latest_ball_detection_ = ball_detection;
   front_indicate_data_.Parameter.BallSens = ball_detection;
@@ -304,9 +309,15 @@ void Driver::on_high_rate_polling_timer()
         this->get_logger(),
         "通信タイムアウトのため、ホイールの回転速度を0 rad/sにします");
       timeout_has_printed_ = true;
+      // 音声再生のためにpublish
+      publish_speaker_voice(SpeakerVoice::VOICE_COMM_DISCONNECT);
     }
   } else {
     timeout_has_printed_ = false;
+    // 直前の状態がタイムアウトだった場合
+    if (timeout_has_printed_) {
+      publish_speaker_voice(SpeakerVoice::VOICE_COMM_CONNECT);
+    }
   }
 
   // フロント基板へ情報を送信
@@ -328,7 +339,16 @@ void Driver::on_low_rate_polling_timer()
   battery_monitor_.main_battery_info_read(
     battery_voltage_msg->voltage, battery_voltage_msg->voltage_status);
   front_indicate_data_.Parameter.BatVol = (unsigned char)(battery_voltage_msg->voltage * 10);
+
+  // バッテリー電圧が低い場合
+  if (battery_voltage_msg->voltage_status ==
+    frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_TOO_LOW)
+  {
+    publish_speaker_voice(SpeakerVoice::VOICE_BATTERY_LOW);
+  }
+
   pub_battery_voltage_->publish(std::move(battery_voltage_msg));
+
 
   // UPS(無停電電源装置)電圧をパブリッシュ
   auto ups_voltage_msg = std::make_unique<frootspi_msgs::msg::BatteryVoltage>();
@@ -461,6 +481,8 @@ void Driver::on_kick(
     response->success = true;
     response->message = std::to_string(sleep_time_usec) + " ミリ秒間ソレノイドをONしました";
 
+    publish_speaker_voice(SpeakerVoice::VOICE_KICK_EXECUTE);
+
   } else if (request->kick_type == frootspi_msgs::srv::Kick::Request::KICK_TYPE_CHIP) {
     // チップキックは未実装
     response->success = false;
@@ -474,6 +496,9 @@ void Driver::on_kick(
 
     response->success = true;
     response->message = "放電を開始しました";
+
+    // 放電開始時に音声再生
+    publish_speaker_voice(SpeakerVoice::VOICE_KICK_DISCHARGE);
   } else {
     // 未定義のキックタイプ
     response->success = false;
@@ -494,12 +519,18 @@ void Driver::on_set_kicker_charging(
     RCLCPP_INFO(this->get_logger(), "キッカーの充電開始.");
     response->message = "充電を開始しました";
     front_indicate_data_.Parameter.ChargeReq = true;
+
+    // 充電開始時に音声再生
+    publish_speaker_voice(SpeakerVoice::VOICE_CHARGER_START);
   } else {
     gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_LOW);
     enable_kicker_charging_ = false;
     RCLCPP_INFO(this->get_logger(), "キッカーの充電停止.");
     response->message = "充電を停止しました";
     front_indicate_data_.Parameter.ChargeReq = false;
+
+    // 充電停止時に音声再生
+    publish_speaker_voice(SpeakerVoice::VOICE_CHARGER_STOP);
   }
 
   response->success = true;
@@ -582,6 +613,13 @@ void Driver::on_enable_gain_setting(
       response->message = "ゲイン設定モードを無効にできませんでした。";
     }
   }
+}
+
+void Driver::publish_speaker_voice(const uint8_t & voice_type)
+{
+  auto voice_msg = std::make_unique<SpeakerVoice>();
+  voice_msg->voice_type = voice_type;
+  pub_speaker_voice_->publish(std::move(voice_msg));
 }
 
 }  // namespace frootspi_hardware
