@@ -253,7 +253,7 @@ void Driver::on_high_rate_polling_timer()
     pub_ball_detection_->publish(std::move(ball_detection_msg));
     // ボール検出をした場合に音声再生
     if (ball_detection) {
-        publish_speaker_voice(SpeakerVoice::VOICE_BALL_CATCH);
+      publish_speaker_voice(SpeakerVoice::VOICE_BALL_CATCH);
     }
   }
   this->latest_ball_detection_ = ball_detection;
@@ -341,10 +341,12 @@ void Driver::on_low_rate_polling_timer()
   front_indicate_data_.Parameter.BatVol = (unsigned char)(battery_voltage_msg->voltage * 10);
 
   // バッテリー電圧が低い場合
-  if (battery_voltage_msg->voltage_status == frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_TOO_LOW) {
+  if (battery_voltage_msg->voltage_status ==
+    frootspi_msgs::msg::BatteryVoltage::BATTERY_VOLTAGE_STATUS_TOO_LOW)
+  {
     publish_speaker_voice(SpeakerVoice::VOICE_BATTERY_LOW);
   }
-  
+
   pub_battery_voltage_->publish(std::move(battery_voltage_msg));
 
 

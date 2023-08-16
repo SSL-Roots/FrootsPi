@@ -46,6 +46,7 @@ class PlayingBuffer:
         wav_obj = simpleaudio.WaveObject.from_wave_file(file_path)
         self._buffer[buffer_index] = wav_obj.play()
 
+
 class Speaker(Node):
 
     def __init__(self):
@@ -78,7 +79,7 @@ class Speaker(Node):
         return file_dict
 
     def callback(self, msg):
-        if not msg.voice_type in self._file_dict:
+        if msg.voice_type not in self._file_dict:
             self.get_logger().info('Voice type:{} does not defined.'.format(msg.voice_type))
             return
 
