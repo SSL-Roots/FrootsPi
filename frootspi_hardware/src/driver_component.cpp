@@ -430,110 +430,117 @@ void Driver::on_kick(
   const frootspi_msgs::srv::Kick::Request::SharedPtr request,
   frootspi_msgs::srv::Kick::Response::SharedPtr response)
 {
-  const int MAX_SLEEP_TIME_USEC_FOR_STRAIGHT = 30000;
+  (void)request;
+  response->success = false;
+  response->message = "ボールボーイはキックデバイスを持っていません";
+  // const int MAX_SLEEP_TIME_USEC_FOR_STRAIGHT = 30000;
 
-  front_indicate_data_.Parameter.KickReq = true;
+  // front_indicate_data_.Parameter.KickReq = true;
 
-  if (request->kick_type == frootspi_msgs::srv::Kick::Request::KICK_TYPE_STRAIGHT) {
-    // ストレートキック
-    uint32_t sleep_time_usec = 4000 * request->kick_power + 100;  // constants based on test
-    if (sleep_time_usec > MAX_SLEEP_TIME_USEC_FOR_STRAIGHT) {
-      sleep_time_usec = MAX_SLEEP_TIME_USEC_FOR_STRAIGHT;
-    }
+  // if (request->kick_type == frootspi_msgs::srv::Kick::Request::KICK_TYPE_STRAIGHT) {
+  //   // ストレートキック
+  //   uint32_t sleep_time_usec = 4000 * request->kick_power + 100;  // constants based on test
+  //   if (sleep_time_usec > MAX_SLEEP_TIME_USEC_FOR_STRAIGHT) {
+  //     sleep_time_usec = MAX_SLEEP_TIME_USEC_FOR_STRAIGHT;
+  //   }
 
-    // GPIOをHIGHにしている時間を変化させて、キックパワーを変更する
-    uint32_t bit_kick_straight = 1 << GPIO_KICK_STRAIGHT;
-    uint32_t bit_kick_enable_charge = 1 << GPIO_KICK_ENABLE_CHARGE;
-    uint32_t bit_kick_enable_charge_masked = enable_kicker_charging_ ? bit_kick_enable_charge : 0;
+  //   // GPIOをHIGHにしている時間を変化させて、キックパワーを変更する
+  //   uint32_t bit_kick_straight = 1 << GPIO_KICK_STRAIGHT;
+  //   uint32_t bit_kick_enable_charge = 1 << GPIO_KICK_ENABLE_CHARGE;
+  //   uint32_t bit_kick_enable_charge_masked = enable_kicker_charging_ ? bit_kick_enable_charge : 0;
 
-    gpioPulse_t pulses[] = {
-      {0, bit_kick_enable_charge, 100},                                           // 充電を停止する
-      {bit_kick_straight, 0, sleep_time_usec},                                    // キックON
-      {0, bit_kick_straight, 100},                                                // キックOFF
-      {bit_kick_enable_charge_masked, 0, 0},                                      // 充電を再開する
-    };
+  //   gpioPulse_t pulses[] = {
+  //     {0, bit_kick_enable_charge, 100},                                           // 充電を停止する
+  //     {bit_kick_straight, 0, sleep_time_usec},                                    // キックON
+  //     {0, bit_kick_straight, 100},                                                // キックOFF
+  //     {bit_kick_enable_charge_masked, 0, 0},                                      // 充電を再開する
+  //   };
 
-    wave_clear(pi_);
-    int num_pulse = wave_add_generic(pi_, sizeof(pulses) / sizeof(gpioPulse_t), pulses);
-    if (num_pulse < 0) {
-      RCLCPP_ERROR(this->get_logger(), "Failed to add wave.");
-      response->success = false;
-      response->message = "キック処理に失敗しました";
-      return;
-    }
+  //   wave_clear(pi_);
+  //   int num_pulse = wave_add_generic(pi_, sizeof(pulses) / sizeof(gpioPulse_t), pulses);
+  //   if (num_pulse < 0) {
+  //     RCLCPP_ERROR(this->get_logger(), "Failed to add wave.");
+  //     response->success = false;
+  //     response->message = "キック処理に失敗しました";
+  //     return;
+  //   }
 
-    int wave_id = wave_create(pi_);
-    if (wave_id < 0) {
-      RCLCPP_ERROR(this->get_logger(), "Failed to create wave.");
-      response->success = false;
-      response->message = "キック処理に失敗しました";
-      return;
-    }
+  //   int wave_id = wave_create(pi_);
+  //   if (wave_id < 0) {
+  //     RCLCPP_ERROR(this->get_logger(), "Failed to create wave.");
+  //     response->success = false;
+  //     response->message = "キック処理に失敗しました";
+  //     return;
+  //   }
 
-    int result = wave_send_once(pi_, wave_id);
-    if (result < 0) {
-      RCLCPP_ERROR(this->get_logger(), "Failed to send wave.");
-      response->success = false;
-      response->message = "キック処理に失敗しました";
-      return;
-    }
+  //   int result = wave_send_once(pi_, wave_id);
+  //   if (result < 0) {
+  //     RCLCPP_ERROR(this->get_logger(), "Failed to send wave.");
+  //     response->success = false;
+  //     response->message = "キック処理に失敗しました";
+  //     return;
+  //   }
 
-    response->success = true;
-    response->message = std::to_string(sleep_time_usec) + " usec間ソレノイドをONしました";
+  //   response->success = true;
+  //   response->message = std::to_string(sleep_time_usec) + " usec間ソレノイドをONしました";
 
-    publish_speaker_voice(SpeakerVoice::VOICE_KICK_EXECUTE);
+  //   publish_speaker_voice(SpeakerVoice::VOICE_KICK_EXECUTE);
 
-  } else if (request->kick_type == frootspi_msgs::srv::Kick::Request::KICK_TYPE_CHIP) {
-    // チップキックは未実装
-    response->success = false;
-    response->message = "チップキックデバイスが搭載されていません";
+  // } else if (request->kick_type == frootspi_msgs::srv::Kick::Request::KICK_TYPE_CHIP) {
+  //   // チップキックは未実装
+  //   response->success = false;
+  //   response->message = "チップキックデバイスが搭載されていません";
 
-  } else if (request->kick_type == frootspi_msgs::srv::Kick::Request::KICK_TYPE_DISCHARGE) {
-    // 放電
-    // discharge_kicker();
-    discharge_kicker_timer_->reset();  // 放電タイマーを再開して放電キック開始
-    RCLCPP_INFO(this->get_logger(), "キッカーの充電停止.");  // 充電停止しているので通知
+  // } else if (request->kick_type == frootspi_msgs::srv::Kick::Request::KICK_TYPE_DISCHARGE) {
+  //   // 放電
+  //   // discharge_kicker();
+  //   discharge_kicker_timer_->reset();  // 放電タイマーを再開して放電キック開始
+  //   RCLCPP_INFO(this->get_logger(), "キッカーの充電停止.");  // 充電停止しているので通知
 
-    response->success = true;
-    response->message = "放電を開始しました";
+  //   response->success = true;
+  //   response->message = "放電を開始しました";
 
-    // 放電開始時に音声再生
-    publish_speaker_voice(SpeakerVoice::VOICE_KICK_DISCHARGE);
-  } else {
-    // 未定義のキックタイプ
-    response->success = false;
-    response->message = "未定義のキックタイプです";
-  }
-  front_indicate_data_.Parameter.KickReq = false;
+  //   // 放電開始時に音声再生
+  //   publish_speaker_voice(SpeakerVoice::VOICE_KICK_DISCHARGE);
+  // } else {
+  //   // 未定義のキックタイプ
+  //   response->success = false;
+  //   response->message = "未定義のキックタイプです";
+  // }
+  // front_indicate_data_.Parameter.KickReq = false;
 }
 
 void Driver::on_set_kicker_charging(
   const frootspi_msgs::srv::SetKickerCharging::Request::SharedPtr request,
   frootspi_msgs::srv::SetKickerCharging::Response::SharedPtr response)
 {
-  // キッカーの充電はキック処理時にON/OFFされるので、
-  // enable_kicker_charging_ 変数で充電フラグを管理する
-  if (request->start_charging) {
-    gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_HIGH);
-    enable_kicker_charging_ = true;
-    RCLCPP_INFO(this->get_logger(), "キッカーの充電開始.");
-    response->message = "充電を開始しました";
-    front_indicate_data_.Parameter.ChargeReq = true;
+  (void)request;
+  response->success = false;
+  response->message = "ボールボーイはキックデバイスを持っていません";
 
-    // 充電開始時に音声再生
-    publish_speaker_voice(SpeakerVoice::VOICE_CHARGER_START);
-  } else {
-    gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_LOW);
-    enable_kicker_charging_ = false;
-    RCLCPP_INFO(this->get_logger(), "キッカーの充電停止.");
-    response->message = "充電を停止しました";
-    front_indicate_data_.Parameter.ChargeReq = false;
+  // // キッカーの充電はキック処理時にON/OFFされるので、
+  // // enable_kicker_charging_ 変数で充電フラグを管理する
+  // if (request->start_charging) {
+  //   gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_HIGH);
+  //   enable_kicker_charging_ = true;
+  //   RCLCPP_INFO(this->get_logger(), "キッカーの充電開始.");
+  //   response->message = "充電を開始しました";
+  //   front_indicate_data_.Parameter.ChargeReq = true;
 
-    // 充電停止時に音声再生
-    publish_speaker_voice(SpeakerVoice::VOICE_CHARGER_STOP);
-  }
+  //   // 充電開始時に音声再生
+  //   publish_speaker_voice(SpeakerVoice::VOICE_CHARGER_START);
+  // } else {
+  //   gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_LOW);
+  //   enable_kicker_charging_ = false;
+  //   RCLCPP_INFO(this->get_logger(), "キッカーの充電停止.");
+  //   response->message = "充電を停止しました";
+  //   front_indicate_data_.Parameter.ChargeReq = false;
 
-  response->success = true;
+  //   // 充電停止時に音声再生
+  //   publish_speaker_voice(SpeakerVoice::VOICE_CHARGER_STOP);
+  // }
+
+  // response->success = true;
 }
 
 // void Driver::on_set_lcd_text(
