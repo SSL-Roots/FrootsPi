@@ -41,11 +41,15 @@ static const int GPIO_KICK_SUPPLY_POWER = 5;
 static const int GPIO_KICK_ENABLE_CHARGE = 26;
 static const int GPIO_KICK_CHARGE_COMPLETE = 12;
 static const int GPIO_DRIBBLE_PWM = 13;
+static const int GPIO_BALL_HANDLER_SERVO = 27;
 static const int DRIBBLE_PWM_FREQUENCY = 40000;  // kHz
 static const int DRIBBLE_PWM_DUTY_CYCLE = 1e6 / DRIBBLE_PWM_FREQUENCY;  // usec
 
 static const int GPIO_CENTER_LED = 14;
 static const int GPIO_RIGHT_LED = 4;
+
+static const int BALL_HANDLER_SERVO_OPEN = 1000;
+static const int BALL_HANDLER_SERVO_CLOSE = 2000;
 
 
 Driver::Driver(const rclcpp::NodeOptions & options)
@@ -176,6 +180,10 @@ Driver::Driver(const rclcpp::NodeOptions & options)
   gpio_write(pi_, GPIO_CENTER_LED, PI_LOW);
   set_mode(pi_, GPIO_RIGHT_LED, PI_OUTPUT);
   gpio_write(pi_, GPIO_RIGHT_LED, PI_LOW);
+
+  // ball handler setup
+  set_mode(pi_, GPIO_BALL_HANDLER_SERVO, PI_OUTPUT);
+  set_servo_pulsewidth(pi_, GPIO_BALL_HANDLER_SERVO, BALL_HANDLER_SERVO_OPEN);
 
   // 通信タイムアウト検知用のタイマー
   steady_clock_ = rclcpp::Clock(RCL_STEADY_TIME);
@@ -416,6 +424,17 @@ void Driver::callback_dribble_power(const frootspi_msgs::msg::DribblePower::Shar
   int dribble_duty_cycle = DRIBBLE_PWM_DUTY_CYCLE * (1.0 - power) + 0.1;
 
   set_PWM_dutycycle(pi_, GPIO_DRIBBLE_PWM, dribble_duty_cycle);
+
+  /**
+   * ボールハンドラを動かす
+   * power > 0.5 のとき、ボールハンドラを閉じる
+   * power <= 0.5 のとき、ボールハンドラを開く 
+   */
+  if (power > 0.5) {
+    set_servo_pulsewidth(pi_, GPIO_BALL_HANDLER_SERVO, BALL_HANDLER_SERVO_CLOSE);
+  } else {
+    set_servo_pulsewidth(pi_, GPIO_BALL_HANDLER_SERVO, BALL_HANDLER_SERVO_OPEN);
+  }
 }
 
 void Driver::callback_wheel_velocities(const frootspi_msgs::msg::WheelVelocities::SharedPtr msg)
