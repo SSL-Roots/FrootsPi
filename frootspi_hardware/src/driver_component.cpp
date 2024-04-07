@@ -35,22 +35,16 @@ namespace frootspi_hardware
 {
 
 static const int GPIO_SHUTDOWN_SWITCH = 23;
-static const int GPIO_KICK_STRAIGHT = 7;
-static const int GPIO_KICK_CHIP = 24;
-static const int GPIO_KICK_SUPPLY_POWER = 5;
-static const int GPIO_KICK_ENABLE_CHARGE = 26;
-static const int GPIO_KICK_CHARGE_COMPLETE = 12;
 static const int GPIO_DRIBBLE_PWM = 13;
 static const int DRIBBLE_PWM_FREQUENCY = 40000;  // kHz
 static const int DRIBBLE_PWM_DUTY_CYCLE = 1e6 / DRIBBLE_PWM_FREQUENCY;  // usec
-
 static const int GPIO_CENTER_LED = 14;
 static const int GPIO_RIGHT_LED = 4;
 
 
 Driver::Driver(const rclcpp::NodeOptions & options)
 : rclcpp::Node("hardware_driver", options),
-  pi_(-1), enable_kicker_charging_(false), discharge_kick_count_(0)
+  pi_(-1)
 {
   using namespace std::placeholders;  // for _1, _2, _3...
 
@@ -61,10 +55,6 @@ Driver::Driver(const rclcpp::NodeOptions & options)
   low_rate_polling_timer_ =
     create_wall_timer(1000ms, std::bind(&Driver::on_low_rate_polling_timer, this));
   low_rate_polling_timer_->cancel();  // ノードがActiveになるまでタイマーオフ
-  // コンデンサ放電時に使うタイマー
-  discharge_kicker_timer_ =
-    create_wall_timer(500ms, std::bind(&Driver::on_discharge_kicker_timer, this));
-  discharge_kicker_timer_->cancel();  // 放電処理が始まるまでタイマーオフ
 
   pub_ball_detection_ = create_publisher<frootspi_msgs::msg::BallDetection>("ball_detection", 1);
   pub_battery_voltage_ = create_publisher<frootspi_msgs::msg::BatteryVoltage>("battery_voltage", 1);
@@ -114,11 +104,7 @@ Driver::Driver(const rclcpp::NodeOptions & options)
   declare_parameter("gpio_ball_sensor", 6);
   gpio_ball_sensor_ = get_parameter("gpio_ball_sensor").get_value<int>();
 
-
   // add pigpio port setting
-  // ball sensor setup
-  set_mode(pi_, gpio_ball_sensor_, PI_INPUT);
-  set_pull_up_down(pi_, gpio_ball_sensor_, PI_PUD_UP);
 
   if (!io_expander_.open(pi_)) {
     RCLCPP_ERROR(this->get_logger(), "Failed to connect IO expander.");
@@ -153,23 +139,17 @@ Driver::Driver(const rclcpp::NodeOptions & options)
 
   set_mode(pi_, GPIO_SHUTDOWN_SWITCH, PI_INPUT);
 
+  // kicker setup
+  if (!kicker_.open(pi_, gpio_ball_sensor_)) {
+    RCLCPP_ERROR(this->get_logger(), "Failed to connect kicker.");
+    throw std::runtime_error("Failed to connect kicker.");
+  }
+
   // dribbler setup
   set_mode(pi_, GPIO_DRIBBLE_PWM, PI_OUTPUT);
   set_PWM_frequency(pi_, GPIO_DRIBBLE_PWM, DRIBBLE_PWM_FREQUENCY);
   set_PWM_range(pi_, GPIO_DRIBBLE_PWM, DRIBBLE_PWM_DUTY_CYCLE);
   gpio_write(pi_, GPIO_DRIBBLE_PWM, PI_HIGH);  // 負論理のためHighでモータオフ
-
-  // kicker setup
-  set_mode(pi_, GPIO_KICK_STRAIGHT, PI_OUTPUT);
-  gpio_write(pi_, GPIO_KICK_STRAIGHT, PI_LOW);
-  set_mode(pi_, GPIO_KICK_CHIP, PI_OUTPUT);
-  gpio_write(pi_, GPIO_KICK_CHIP, PI_LOW);
-  set_mode(pi_, GPIO_KICK_SUPPLY_POWER, PI_OUTPUT);
-  gpio_write(pi_, GPIO_KICK_SUPPLY_POWER, PI_LOW);
-  set_mode(pi_, GPIO_KICK_ENABLE_CHARGE, PI_OUTPUT);
-  gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_LOW);
-  set_mode(pi_, GPIO_KICK_CHARGE_COMPLETE, PI_INPUT);
-  set_pull_up_down(pi_, GPIO_KICK_CHARGE_COMPLETE, PI_PUD_UP);  // 外部プルアップあり
 
   // led setup
   set_mode(pi_, GPIO_CENTER_LED, PI_OUTPUT);
@@ -185,8 +165,6 @@ Driver::Driver(const rclcpp::NodeOptions & options)
   // polling timer reset
   high_rate_polling_timer_->reset();
   low_rate_polling_timer_->reset();
-
-  gpio_write(pi_, GPIO_KICK_SUPPLY_POWER, PI_HIGH);
 }
 
 Driver::~Driver()
@@ -196,8 +174,6 @@ Driver::~Driver()
 
   gpio_write(pi_, GPIO_DRIBBLE_PWM, PI_HIGH);  // 負論理のためHighでモータオフ
   // lcd_driver_.write_texts("ROS 2", "SHUTDOWN");
-  gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_LOW);
-  gpio_write(pi_, GPIO_KICK_SUPPLY_POWER, PI_LOW);
 
   io_expander_.close();
   capacitor_monitor_.close();
@@ -372,29 +348,6 @@ void Driver::on_low_rate_polling_timer()
 }
 
 
-void Driver::on_discharge_kicker_timer()
-{
-  // キッカーコンデンサ放電用の定期実行関数
-  // タイマーからこの関数が呼ばれるたびに弱キックしてコンデンサの電荷を放電する
-  const int TIME_FOR_DISCHARGE_KICK = 1;
-  const int NUM_OF_DISCHARGE_KICK = 30;
-
-  // 充電許可フラグをオフにする
-  gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_LOW);
-  enable_kicker_charging_ = false;
-
-  // 威力の弱いキック
-  gpio_write(pi_, GPIO_KICK_STRAIGHT, PI_HIGH);
-  rclcpp::sleep_for(std::chrono::milliseconds(TIME_FOR_DISCHARGE_KICK));
-  gpio_write(pi_, GPIO_KICK_STRAIGHT, PI_LOW);
-
-  // 一定回数キックしたらタイマーをオフする
-  discharge_kick_count_++;
-  if (discharge_kick_count_ > NUM_OF_DISCHARGE_KICK) {
-    discharge_kicker_timer_->cancel();
-    discharge_kick_count_ = 0;
-  }
-}
 
 void Driver::callback_dribble_power(const frootspi_msgs::msg::DribblePower::SharedPtr msg)
 {
@@ -430,57 +383,19 @@ void Driver::on_kick(
   const frootspi_msgs::srv::Kick::Request::SharedPtr request,
   frootspi_msgs::srv::Kick::Response::SharedPtr response)
 {
-  const int MAX_SLEEP_TIME_USEC_FOR_STRAIGHT = 30000;
-
   front_indicate_data_.Parameter.KickReq = true;
 
   if (request->kick_type == frootspi_msgs::srv::Kick::Request::KICK_TYPE_STRAIGHT) {
-    // ストレートキック
-    uint32_t sleep_time_usec = 4000 * request->kick_power + 100;  // constants based on test
-    if (sleep_time_usec > MAX_SLEEP_TIME_USEC_FOR_STRAIGHT) {
-      sleep_time_usec = MAX_SLEEP_TIME_USEC_FOR_STRAIGHT;
-    }
+    bool kick_result = kicker_.kickStraight(request->kick_power * 1000);
 
-    // GPIOをHIGHにしている時間を変化させて、キックパワーを変更する
-    uint32_t bit_kick_straight = 1 << GPIO_KICK_STRAIGHT;
-    uint32_t bit_kick_enable_charge = 1 << GPIO_KICK_ENABLE_CHARGE;
-    uint32_t bit_kick_enable_charge_masked = enable_kicker_charging_ ? bit_kick_enable_charge : 0;
-
-    gpioPulse_t pulses[] = {
-      {0, bit_kick_enable_charge, 100},                                           // 充電を停止する
-      {bit_kick_straight, 0, sleep_time_usec},                                    // キックON
-      {0, bit_kick_straight, 100},                                                // キックOFF
-      {bit_kick_enable_charge_masked, 0, 0},                                      // 充電を再開する
-    };
-
-    wave_clear(pi_);
-    int num_pulse = wave_add_generic(pi_, sizeof(pulses) / sizeof(gpioPulse_t), pulses);
-    if (num_pulse < 0) {
+    if (!kick_result) {
       RCLCPP_ERROR(this->get_logger(), "Failed to add wave.");
       response->success = false;
       response->message = "キック処理に失敗しました";
       return;
     }
 
-    int wave_id = wave_create(pi_);
-    if (wave_id < 0) {
-      RCLCPP_ERROR(this->get_logger(), "Failed to create wave.");
-      response->success = false;
-      response->message = "キック処理に失敗しました";
-      return;
-    }
-
-    int result = wave_send_once(pi_, wave_id);
-    if (result < 0) {
-      RCLCPP_ERROR(this->get_logger(), "Failed to send wave.");
-      response->success = false;
-      response->message = "キック処理に失敗しました";
-      return;
-    }
-
     response->success = true;
-    response->message = std::to_string(sleep_time_usec) + " usec間ソレノイドをONしました";
-
     publish_speaker_voice(SpeakerVoice::VOICE_KICK_EXECUTE);
 
   } else if (request->kick_type == frootspi_msgs::srv::Kick::Request::KICK_TYPE_CHIP) {
@@ -490,8 +405,7 @@ void Driver::on_kick(
 
   } else if (request->kick_type == frootspi_msgs::srv::Kick::Request::KICK_TYPE_DISCHARGE) {
     // 放電
-    // discharge_kicker();
-    discharge_kicker_timer_->reset();  // 放電タイマーを再開して放電キック開始
+    kicker_.discharge();
     RCLCPP_INFO(this->get_logger(), "キッカーの充電停止.");  // 充電停止しているので通知
 
     response->success = true;
@@ -514,8 +428,7 @@ void Driver::on_set_kicker_charging(
   // キッカーの充電はキック処理時にON/OFFされるので、
   // enable_kicker_charging_ 変数で充電フラグを管理する
   if (request->start_charging) {
-    gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_HIGH);
-    enable_kicker_charging_ = true;
+    kicker_.enableCharging();
     RCLCPP_INFO(this->get_logger(), "キッカーの充電開始.");
     response->message = "充電を開始しました";
     front_indicate_data_.Parameter.ChargeReq = true;
@@ -523,8 +436,7 @@ void Driver::on_set_kicker_charging(
     // 充電開始時に音声再生
     publish_speaker_voice(SpeakerVoice::VOICE_CHARGER_START);
   } else {
-    gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_LOW);
-    enable_kicker_charging_ = false;
+    kicker_.disableCharging();
     RCLCPP_INFO(this->get_logger(), "キッカーの充電停止.");
     response->message = "充電を停止しました";
     front_indicate_data_.Parameter.ChargeReq = false;

@@ -28,6 +28,7 @@
 #include "frootspi_hardware/battery_monitor.hpp"
 #include "frootspi_hardware/front_display_communicator.hpp"
 #include "frootspi_hardware/wheel_controller.hpp"
+#include "frootspi_hardware/kicker.hpp"
 #include "frootspi_msgs/msg/ball_detection.hpp"
 #include "frootspi_msgs/msg/battery_voltage.hpp"
 #include "frootspi_msgs/msg/dribble_power.hpp"
@@ -58,7 +59,6 @@ public:
 private:
   void on_high_rate_polling_timer();
   void on_low_rate_polling_timer();
-  void on_discharge_kicker_timer();
   void callback_dribble_power(const frootspi_msgs::msg::DribblePower::SharedPtr msg);
   void callback_wheel_velocities(const frootspi_msgs::msg::WheelVelocities::SharedPtr msg);
   void on_kick(
@@ -119,7 +119,6 @@ private:
 
   rclcpp::TimerBase::SharedPtr high_rate_polling_timer_;
   rclcpp::TimerBase::SharedPtr low_rate_polling_timer_;
-  rclcpp::TimerBase::SharedPtr discharge_kicker_timer_;
   rclcpp::Clock steady_clock_;
   rclcpp::Time sub_wheel_timestamp_;
   bool timeout_has_printed_;
@@ -131,11 +130,10 @@ private:
   LCDDriver lcd_driver_;
   CapacitorMonitor capacitor_monitor_;
   FrontDisplayCommunicator front_display_communicator_;
-  bool enable_kicker_charging_;
-  int discharge_kick_count_;
   WheelController wheel_controller_;
   int front_display_prescaler_count_;
   FrontIndicateData front_indicate_data_;
+  Kicker kicker_;
 
   // sensor data store
   bool latest_ball_detection_;
