@@ -29,6 +29,7 @@
 #include "frootspi_hardware/front_display_communicator.hpp"
 #include "frootspi_hardware/wheel_controller.hpp"
 #include "frootspi_hardware/kicker.hpp"
+#include "frootspi_hardware/dribbler.hpp"
 #include "frootspi_msgs/msg/ball_detection.hpp"
 #include "frootspi_msgs/msg/battery_voltage.hpp"
 #include "frootspi_msgs/msg/dribble_power.hpp"
@@ -134,6 +135,7 @@ private:
   int front_display_prescaler_count_;
   FrontIndicateData front_indicate_data_;
   Kicker kicker_;
+  Dribbler dribbler_;
 
   // sensor data store
   bool latest_ball_detection_;

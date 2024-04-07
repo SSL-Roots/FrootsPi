@@ -36,6 +36,7 @@ add_library(driver_component SHARED
   src/battery_monitor.cpp
   src/front_display_communicator.cpp
   src/kicker.cpp
+  src/dribbler.cpp
 )
 target_compile_definitions(driver_component
   PRIVATE "FROOTSPI_HARDWARE_BUILDING_DLL")

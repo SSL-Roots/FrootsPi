@@ -35,9 +35,6 @@ namespace frootspi_hardware
 {
 
 static const int GPIO_SHUTDOWN_SWITCH = 23;
-static const int GPIO_DRIBBLE_PWM = 13;
-static const int DRIBBLE_PWM_FREQUENCY = 40000;  // kHz
-static const int DRIBBLE_PWM_DUTY_CYCLE = 1e6 / DRIBBLE_PWM_FREQUENCY;  // usec
 static const int GPIO_CENTER_LED = 14;
 static const int GPIO_RIGHT_LED = 4;
 
@@ -146,10 +143,10 @@ Driver::Driver(const rclcpp::NodeOptions & options)
   }
 
   // dribbler setup
-  set_mode(pi_, GPIO_DRIBBLE_PWM, PI_OUTPUT);
-  set_PWM_frequency(pi_, GPIO_DRIBBLE_PWM, DRIBBLE_PWM_FREQUENCY);
-  set_PWM_range(pi_, GPIO_DRIBBLE_PWM, DRIBBLE_PWM_DUTY_CYCLE);
-  gpio_write(pi_, GPIO_DRIBBLE_PWM, PI_HIGH);  // 負論理のためHighでモータオフ
+  if (!this->dribbler_.open(pi_)) {
+    RCLCPP_ERROR(this->get_logger(), "Failed to connect dribbler.");
+    throw std::runtime_error("Failed to connect dribbler.");
+  }
 
   // led setup
   set_mode(pi_, GPIO_CENTER_LED, PI_OUTPUT);
@@ -172,7 +169,6 @@ Driver::~Driver()
   high_rate_polling_timer_->cancel();
   low_rate_polling_timer_->cancel();
 
-  gpio_write(pi_, GPIO_DRIBBLE_PWM, PI_HIGH);  // 負論理のためHighでモータオフ
   // lcd_driver_.write_texts("ROS 2", "SHUTDOWN");
 
   io_expander_.close();
@@ -180,6 +176,7 @@ Driver::~Driver()
   battery_monitor_.close();
   lcd_driver_.close();
   front_display_communicator_.close();
+  dribbler_.close();
 
   pigpio_stop(pi_);
 }
@@ -363,11 +360,7 @@ void Driver::callback_dribble_power(const frootspi_msgs::msg::DribblePower::Shar
     front_indicate_data_.Parameter.DribbleReq = false;
   }
 
-  // 負論理のため反転
-  // 少数を切り上げるため0.1を足す (例：20.0 -> 19となるので、20.1 -> 20とさせる)
-  int dribble_duty_cycle = DRIBBLE_PWM_DUTY_CYCLE * (1.0 - power) + 0.1;
-
-  set_PWM_dutycycle(pi_, GPIO_DRIBBLE_PWM, dribble_duty_cycle);
+  this->dribbler_.drive(power);
 }
 
 void Driver::callback_wheel_velocities(const frootspi_msgs::msg::WheelVelocities::SharedPtr msg)
