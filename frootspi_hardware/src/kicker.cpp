@@ -84,6 +84,11 @@ bool Kicker::kickStraight(uint32_t powerMmps)
 
 void Kicker:: enableCharging()
 {
+    if (this->is_charging_) {
+        return;
+    }
+
+    this->cancelKick();
     gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_HIGH);
     this->is_charging_ = true;
 }
@@ -91,6 +96,11 @@ void Kicker:: enableCharging()
 
 void Kicker:: disableCharging()
 {
+    if (!this->is_charging_) {
+        return;
+    }
+
+    this->cancelKick();
     gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_LOW);
     this->is_charging_ = false;
 }
