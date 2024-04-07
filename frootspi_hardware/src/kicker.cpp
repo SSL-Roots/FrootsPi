@@ -114,24 +114,16 @@ bool Kicker::discharge()
     uint32_t bit_kick_straight = 1 << GPIO_KICK_STRAIGHT;
     uint32_t bit_kick_enable_charge = 1 << GPIO_KICK_ENABLE_CHARGE;
 
-    uint32_t ontime_us = 1000;
-    uint32_t cycle_us = 1000 * 1000;
+    const uint32_t ontime_us = 1000;
+    const uint32_t cycle_us = 500 * 1000;
+    const size_t num_discharge = 60;
 
-    gpioPulse_t pulses[] = {
-      {0, bit_kick_enable_charge, 100},                                           // 充電を停止する
-      {bit_kick_straight, 0, ontime_us},
-      {0, bit_kick_straight, cycle_us - ontime_us},
-      {bit_kick_straight, 0, ontime_us},
-      {0, bit_kick_straight, cycle_us - ontime_us},
-      {bit_kick_straight, 0, ontime_us},
-      {0, bit_kick_straight, cycle_us - ontime_us},
-      {bit_kick_straight, 0, ontime_us},
-      {0, bit_kick_straight, cycle_us - ontime_us},
-      {bit_kick_straight, 0, ontime_us},
-      {0, bit_kick_straight, cycle_us - ontime_us},
-      {bit_kick_straight, 0, ontime_us},
-      {0, bit_kick_straight, cycle_us - ontime_us},
-    };
+    gpioPulse_t pulses[num_discharge*2 + 1];
+    pulses[0] = {0, bit_kick_enable_charge, 100};   // 充電をOFF
+    for(size_t i=0; i<num_discharge; i++) {
+      pulses[i*2+1] = {bit_kick_straight, 0, ontime_us};
+      pulses[i*2+2] = {0, bit_kick_straight, cycle_us - ontime_us};
+    }
 
     wave_clear(pi_);
     int num_pulse = wave_add_generic(pi_, sizeof(pulses) / sizeof(gpioPulse_t), pulses);
@@ -148,6 +140,8 @@ bool Kicker::discharge()
     if (result < 0) {
         return false;
     }
+
+    this->is_charging_ = false;
 
     return true;
 }
