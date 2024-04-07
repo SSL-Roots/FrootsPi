@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#pragma once
+#ifndef FROOTSPI_HARDWARE__KICKER_HPP_
+#define FROOTSPI_HARDWARE__KICKER_HPP_
 
 #include <pigpiod_if2.h>
 #include "rclcpp/rclcpp.hpp"
@@ -26,19 +27,21 @@ const int GPIO_KICK_CHARGE_COMPLETE = 12;
 class Kicker
 {
 public:
-    Kicker();
-    ~Kicker();
+  Kicker();
+  ~Kicker();
 
-    bool open(int pi, int pin_ball_sensor);
-    void enableCharging();
-    void disableCharging();
-    bool discharge();
-    bool kickStraight(uint32_t powerMmps);
+  bool open(int pi, int pin_ball_sensor);
+  void enableCharging();
+  void disableCharging();
+  bool discharge();
+  bool kickStraight(uint32_t powerMmps);
 
 private:
-    bool cancelKick();
-    bool generateWave(gpioPulse_t *wave, size_t num_pulses);
+  bool cancelKick();
+  bool generateWave(gpioPulse_t * wave, size_t num_pulses);
 
-    int pi_;
-    bool is_charging_;
+  int pi_;
+  bool is_charging_;
 };
+
+#endif  // FROOTSPI_HARDWARE__KICKER_HPP_

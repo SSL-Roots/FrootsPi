@@ -17,8 +17,8 @@
 /**
  * @brief コンストラクタ。キッカーの初期化を行います。
  */
-Kicker::Kicker() :
-    is_charging_(false)
+Kicker::Kicker()
+: is_charging_(false)
 {
 }
 
@@ -41,26 +41,26 @@ Kicker::~Kicker()
  */
 bool Kicker::open(int pi, int pin_ball_sensor)
 {
-    this->pi_ = pi;
+  this->pi_ = pi;
 
-    // ボールセンサーの設定
-    set_mode(pi_, pin_ball_sensor, PI_INPUT);
-    set_pull_up_down(pi_, pin_ball_sensor, PI_PUD_UP);
+  // ボールセンサーの設定
+  set_mode(pi_, pin_ball_sensor, PI_INPUT);
+  set_pull_up_down(pi_, pin_ball_sensor, PI_PUD_UP);
 
-    // キッカーの設定
-    set_mode(pi_, GPIO_KICK_STRAIGHT, PI_OUTPUT);
-    gpio_write(pi_, GPIO_KICK_STRAIGHT, PI_LOW);
-    set_mode(pi_, GPIO_KICK_CHIP, PI_OUTPUT);
-    gpio_write(pi_, GPIO_KICK_CHIP, PI_LOW);
-    set_mode(pi_, GPIO_KICK_SUPPLY_POWER, PI_OUTPUT);
-    gpio_write(pi_, GPIO_KICK_SUPPLY_POWER, PI_LOW);
-    set_mode(pi_, GPIO_KICK_ENABLE_CHARGE, PI_OUTPUT);
-    gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_LOW);
-    set_mode(pi_, GPIO_KICK_CHARGE_COMPLETE, PI_INPUT);
-    set_pull_up_down(pi_, GPIO_KICK_CHARGE_COMPLETE, PI_PUD_UP);  // 外部プルアップあり
-    gpio_write(pi_, GPIO_KICK_SUPPLY_POWER, PI_HIGH);
+  // キッカーの設定
+  set_mode(pi_, GPIO_KICK_STRAIGHT, PI_OUTPUT);
+  gpio_write(pi_, GPIO_KICK_STRAIGHT, PI_LOW);
+  set_mode(pi_, GPIO_KICK_CHIP, PI_OUTPUT);
+  gpio_write(pi_, GPIO_KICK_CHIP, PI_LOW);
+  set_mode(pi_, GPIO_KICK_SUPPLY_POWER, PI_OUTPUT);
+  gpio_write(pi_, GPIO_KICK_SUPPLY_POWER, PI_LOW);
+  set_mode(pi_, GPIO_KICK_ENABLE_CHARGE, PI_OUTPUT);
+  gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_LOW);
+  set_mode(pi_, GPIO_KICK_CHARGE_COMPLETE, PI_INPUT);
+  set_pull_up_down(pi_, GPIO_KICK_CHARGE_COMPLETE, PI_PUD_UP);    // 外部プルアップあり
+  gpio_write(pi_, GPIO_KICK_SUPPLY_POWER, PI_HIGH);
 
-    return true;
+  return true;
 }
 
 /**
@@ -104,13 +104,13 @@ bool Kicker::kickStraight(uint32_t powerMmps)
  */
 void Kicker::enableCharging()
 {
-    if (this->is_charging_) {
-        return;
-    }
+  if (this->is_charging_) {
+    return;
+  }
 
-    this->cancelKick();
-    gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_HIGH);
-    this->is_charging_ = true;
+  this->cancelKick();
+  gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_HIGH);
+  this->is_charging_ = true;
 }
 
 /**
@@ -118,13 +118,13 @@ void Kicker::enableCharging()
  */
 void Kicker::disableCharging()
 {
-    if (!this->is_charging_) {
-        return;
-    }
+  if (!this->is_charging_) {
+    return;
+  }
 
-    this->cancelKick();
-    gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_LOW);
-    this->is_charging_ = false;
+  this->cancelKick();
+  gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_LOW);
+  this->is_charging_ = false;
 }
 
 /**
@@ -135,27 +135,28 @@ void Kicker::disableCharging()
  */
 bool Kicker::discharge()
 {
-    uint32_t bit_kick_straight = 1 << GPIO_KICK_STRAIGHT;
-    uint32_t bit_kick_enable_charge = 1 << GPIO_KICK_ENABLE_CHARGE;
+  uint32_t bit_kick_straight = 1 << GPIO_KICK_STRAIGHT;
+  uint32_t bit_kick_enable_charge = 1 << GPIO_KICK_ENABLE_CHARGE;
 
-    const uint32_t ontime_us = 1000;
-    const uint32_t cycle_us = 500 * 1000;
-    const size_t num_discharge = 60;
+  const uint32_t ontime_us = 1000;
+  const uint32_t cycle_us = 500 * 1000;
+  const size_t num_discharge = 60;
+  const size_t kPulseArrayLength = num_discharge * 2 + 1;
 
-    gpioPulse_t pulses[num_discharge*2 + 1];
-    pulses[0] = {0, bit_kick_enable_charge, 100};   // 充電をOFF
-    for(size_t i=0; i<num_discharge; i++) {
-      pulses[i*2+1] = {bit_kick_straight, 0, ontime_us};
-      pulses[i*2+2] = {0, bit_kick_straight, cycle_us - ontime_us};
-    }
+  gpioPulse_t pulses[kPulseArrayLength];
+  pulses[0] = {0, bit_kick_enable_charge, 100};     // 充電をOFF
+  for (size_t i = 0; i < num_discharge; i++) {
+    pulses[i * 2 + 1] = {bit_kick_straight, 0, ontime_us};
+    pulses[i * 2 + 2] = {0, bit_kick_straight, cycle_us - ontime_us};
+  }
 
-    bool gen_result = this->generateWave(pulses, sizeof(pulses) / sizeof(gpioPulse_t));
-    if (!gen_result) {
-        return false;
-    }
+  bool gen_result = this->generateWave(pulses, kPulseArrayLength);
+  if (!gen_result) {
+    return false;
+  }
 
-    this->is_charging_ = false;
-    return true;
+  this->is_charging_ = false;
+  return true;
 }
 
 /**
@@ -166,13 +167,13 @@ bool Kicker::discharge()
  */
 bool Kicker::cancelKick()
 {
-    uint32_t bit_kick_straight = 1 << GPIO_KICK_STRAIGHT;
+  uint32_t bit_kick_straight = 1 << GPIO_KICK_STRAIGHT;
 
-    gpioPulse_t pulses[] = {
-      {0, bit_kick_straight, 1}, // キックOFF
-    };
+  gpioPulse_t pulses[] = {
+    {0, bit_kick_straight, 1},   // キックOFF
+  };
 
-    return this->generateWave(pulses, sizeof(pulses) / sizeof(gpioPulse_t));
+  return this->generateWave(pulses, sizeof(pulses) / sizeof(gpioPulse_t));
 }
 
 /**
@@ -183,25 +184,25 @@ bool Kicker::cancelKick()
  * @return true 波形の生成に成功した場合。
  * @return false 波形の生成に失敗した場合。
  */
-bool Kicker::generateWave(gpioPulse_t *wave, size_t num_pulses)
+bool Kicker::generateWave(gpioPulse_t * wave, size_t num_pulses)
 {
-    wave_clear(pi_);
-    int num_pulse = wave_add_generic(pi_, num_pulses, wave);
-    if (num_pulse < 0) {
-        return false;
-    }
+  wave_clear(pi_);
+  int num_pulse = wave_add_generic(pi_, num_pulses, wave);
+  if (num_pulse < 0) {
+    return false;
+  }
 
-    int wave_id = wave_create(pi_);
-    if (wave_id < 0) {
-        return false;
-    }
+  int wave_id = wave_create(pi_);
+  if (wave_id < 0) {
+    return false;
+  }
 
-    int result = wave_send_once(pi_, wave_id);
-    if (result < 0) {
-        return false;
-    }
+  int result = wave_send_once(pi_, wave_id);
+  if (result < 0) {
+    return false;
+  }
 
-    wave_delete(pi_, wave_id);  // wave の数が無限に増えないよう逐次削除
+  wave_delete(pi_, wave_id);    // wave の数が無限に増えないよう逐次削除
                                 // waveのバッファから消えるだけで、波形自体は出る
-    return true;
+  return true;
 }

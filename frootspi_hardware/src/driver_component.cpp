@@ -348,7 +348,6 @@ void Driver::on_low_rate_polling_timer()
 }
 
 
-
 void Driver::callback_dribble_power(const frootspi_msgs::msg::DribblePower::SharedPtr msg)
 {
   double power = msg->power;
