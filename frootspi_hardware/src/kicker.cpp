@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <pigpiod_if2.h>
-#include <chrono>
 
 #include "frootspi_hardware/kicker.hpp"
 
@@ -76,19 +74,8 @@ bool Kicker::kickStraight(uint32_t powerMmps)
       {bit_kick_enable_charge_masked, 0, 0},                                      // 充電を再開する
     };
 
-    wave_clear(pi_);
-    int num_pulse = wave_add_generic(pi_, sizeof(pulses) / sizeof(gpioPulse_t), pulses);
-    if (num_pulse < 0) {
-        return false;
-    }
-
-    int wave_id = wave_create(pi_);
-    if (wave_id < 0) {
-        return false;
-    }
-
-    int result = wave_send_once(pi_, wave_id);
-    if (result < 0) {
+    bool gen_result = this->generateWave(pulses, sizeof(pulses) / sizeof(gpioPulse_t));
+    if (!gen_result) {
         return false;
     }
 
@@ -125,24 +112,12 @@ bool Kicker::discharge()
       pulses[i*2+2] = {0, bit_kick_straight, cycle_us - ontime_us};
     }
 
-    wave_clear(pi_);
-    int num_pulse = wave_add_generic(pi_, sizeof(pulses) / sizeof(gpioPulse_t), pulses);
-    if (num_pulse < 0) {
+    bool gen_result = this->generateWave(pulses, sizeof(pulses) / sizeof(gpioPulse_t));
+    if (!gen_result) {
         return false;
     }
 
-    int wave_id = wave_create(pi_);
-    if (wave_id < 0) {
-        return false;
-    }
-
-    int result = wave_send_once(pi_, wave_id);
-    if (result < 0) {
-        return false;
-    }
-    
     this->is_charging_ = false;
-
     return true;
 }
 
@@ -155,8 +130,13 @@ bool Kicker::cancelKick()
       {0, bit_kick_straight, 1}, // キックOFF
     };
 
+    return this->generateWave(pulses, sizeof(pulses) / sizeof(gpioPulse_t));
+}
+
+bool Kicker::generateWave(gpioPulse_t *wave, size_t num_pulses)
+{
     wave_clear(pi_);
-    int num_pulse = wave_add_generic(pi_, sizeof(pulses) / sizeof(gpioPulse_t), pulses);
+    int num_pulse = wave_add_generic(pi_, num_pulses, wave);
     if (num_pulse < 0) {
         return false;
     }
@@ -171,5 +151,7 @@ bool Kicker::cancelKick()
         return false;
     }
 
+    wave_delete(pi_, wave_id);  // wave の数が無限に増えないよう逐次削除
+                                // waveのバッファから消えるだけで、波形自体は出る
     return true;
 }

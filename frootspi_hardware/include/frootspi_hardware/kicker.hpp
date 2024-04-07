@@ -14,6 +14,7 @@
 
 #pragma once
 
+#include <pigpiod_if2.h>
 #include "rclcpp/rclcpp.hpp"
 
 const int GPIO_KICK_STRAIGHT = 7;
@@ -36,8 +37,7 @@ public:
 
 private:
     bool cancelKick();
-
-    rclcpp::TimerBase::SharedPtr discharge_kicker_timer_;
+    bool generateWave(gpioPulse_t *wave, size_t num_pulses);
 
     int pi_;
     bool is_charging_;
