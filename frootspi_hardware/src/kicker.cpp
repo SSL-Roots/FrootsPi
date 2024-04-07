@@ -140,8 +140,36 @@ bool Kicker::discharge()
     if (result < 0) {
         return false;
     }
-
+    
     this->is_charging_ = false;
+
+    return true;
+}
+
+
+bool Kicker::cancelKick()
+{
+    uint32_t bit_kick_straight = 1 << GPIO_KICK_STRAIGHT;
+
+    gpioPulse_t pulses[] = {
+      {0, bit_kick_straight, 1}, // キックOFF
+    };
+
+    wave_clear(pi_);
+    int num_pulse = wave_add_generic(pi_, sizeof(pulses) / sizeof(gpioPulse_t), pulses);
+    if (num_pulse < 0) {
+        return false;
+    }
+
+    int wave_id = wave_create(pi_);
+    if (wave_id < 0) {
+        return false;
+    }
+
+    int result = wave_send_once(pi_, wave_id);
+    if (result < 0) {
+        return false;
+    }
 
     return true;
 }

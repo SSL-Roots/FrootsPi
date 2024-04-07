@@ -35,6 +35,8 @@ public:
     bool kickStraight(uint32_t powerMmps);
 
 private:
+    bool cancelKick();
+
     rclcpp::TimerBase::SharedPtr discharge_kicker_timer_;
 
     int pi_;
