@@ -31,17 +31,25 @@ public:
   ~Kicker();
 
   bool open(int pi, int pin_ball_sensor);
-  void enableCharging();
-  void disableCharging();
+  bool enableCharging();
+  bool disableCharging();
   bool discharge();
   bool kickStraight(uint32_t powerMmps);
+
+  void enableDebugMode();
+  void disableDebugMode();
+  void debugEnableCharging();
+  void debugDisableCharging();
 
 private:
   bool cancelKick();
   bool generateWave(gpioPulse_t * wave, size_t num_pulses);
+  bool enableCharging_();
+  bool disableCharging_();
 
   int pi_;
   bool is_charging_;
+  bool debug_mode_;
 };
 
 #endif  // FROOTSPI_HARDWARE__KICKER_HPP_

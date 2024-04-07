@@ -74,6 +74,8 @@ bool Kicker::kickStraight(uint32_t powerMmps)
 {
   const int MAX_SLEEP_TIME_USEC_FOR_STRAIGHT = 30000;
 
+  if (this->debug_mode_)  return false;
+
   uint32_t sleep_time_usec = 4 * powerMmps + 100;  // 実験に基づく定数
   if (sleep_time_usec > MAX_SLEEP_TIME_USEC_FOR_STRAIGHT) {
     sleep_time_usec = MAX_SLEEP_TIME_USEC_FOR_STRAIGHT;
@@ -101,30 +103,24 @@ bool Kicker::kickStraight(uint32_t powerMmps)
 
 /**
  * @brief 充電を有効にします。
+ * @return true 充電許可に成功した場合。
+ * @return false 充電許可に失敗した場合。
  */
-void Kicker::enableCharging()
+bool Kicker::enableCharging()
 {
-  if (this->is_charging_) {
-    return;
-  }
-
-  this->cancelKick();
-  gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_HIGH);
-  this->is_charging_ = true;
+  if (this->debug_mode_) return false;
+  return this->enableCharging_();
 }
 
 /**
  * @brief 充電を無効にします。
+ * @return true 充電禁止に成功した場合。
+ * @return false 充電禁止に失敗した場合。
  */
-void Kicker::disableCharging()
+bool Kicker::disableCharging()
 {
-  if (!this->is_charging_) {
-    return;
-  }
-
-  this->cancelKick();
-  gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_LOW);
-  this->is_charging_ = false;
+  if (this->debug_mode_) return false;
+  return this->disableCharging_();
 }
 
 /**
@@ -158,6 +154,43 @@ bool Kicker::discharge()
   this->is_charging_ = false;
   return true;
 }
+
+/**
+ * @brief デバッグモードを有効にします。
+ */
+void Kicker::enableDebugMode()
+{
+  this->debug_mode_ = true;
+}
+
+/**
+ * @brief デバッグモードを無効にします。
+ */
+void Kicker::disableDebugMode()
+{
+  this->debug_mode_ = false;
+}
+
+/**
+ * @brief デバッグモードで充電を有効にします。
+ * @return true 充電許可に成功した場合。
+ * @return false 充電許可に失敗した場合。
+ */
+void Kicker::debugEnableCharging()
+{
+  this->enableCharging_();
+}
+
+/**
+ * @brief デバッグモードで充電を無効にします。
+ * @return true 充電禁止に成功した場合。
+ * @return false 充電禁止に失敗した場合。
+ */
+void Kicker::debugDisableCharging()
+{
+  this->disableCharging_();
+}
+
 
 /**
  * @brief キックをキャンセルします。
@@ -204,5 +237,37 @@ bool Kicker::generateWave(gpioPulse_t * wave, size_t num_pulses)
 
   wave_delete(pi_, wave_id);    // wave の数が無限に増えないよう逐次削除
                                 // waveのバッファから消えるだけで、波形自体は出る
+  return true;
+}
+
+/**
+ * @brief 充電を有効にします。
+ * @return true 充電許可に成功した場合。
+ * @return false 充電許可に失敗した場合。
+ */
+bool Kicker::enableCharging_()
+{
+  if (this->is_charging_) return false;
+
+  this->cancelKick();
+  gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_HIGH);
+  this->is_charging_ = true;
+
+  return true;
+}
+
+/**
+ * @brief 充電を無効にします。
+ * @return true 充電禁止に成功した場合。
+ * @return false 充電禁止に失敗した場合。
+ */
+bool Kicker::disableCharging_()
+{
+  if (!this->is_charging_) return false;
+
+  this->cancelKick();
+  gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_LOW);
+  this->is_charging_ = false;
+
   return true;
 }
