@@ -425,8 +425,6 @@ void Driver::on_set_kicker_charging(
   const frootspi_msgs::srv::SetKickerCharging::Request::SharedPtr request,
   frootspi_msgs::srv::SetKickerCharging::Response::SharedPtr response)
 {
-  // キッカーの充電はキック処理時にON/OFFされるので、
-  // enable_kicker_charging_ 変数で充電フラグを管理する
   if (request->start_charging) {
     kicker_.enableCharging();
     RCLCPP_INFO(this->get_logger(), "キッカーの充電開始.");
