@@ -56,7 +56,7 @@ void Dribbler::close()
 
 /**
  * @brief ドリブラーを駆動する。
- * 
+ *
  * @param power ドリブラーの駆動力。0.0で停止、1.0で最大出力。
  */
 bool Dribbler::drive(double power)
