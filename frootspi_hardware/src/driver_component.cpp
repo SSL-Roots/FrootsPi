@@ -296,6 +296,11 @@ void Driver::on_high_rate_polling_timer()
       this->kicker_.debugDisableCharging();
       this->kicker_.disableDebugMode();
     }
+
+    // 放電スイッチ
+    if (pushed_button0) {
+      this->kicker_.discharge();
+    }
   }
 
   // オムニホイール回転速度をパブリッシュ

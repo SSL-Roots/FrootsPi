@@ -21,7 +21,6 @@
 #include "std_msgs/msg/int16.hpp"
 #include "frootspi_msgs/msg/battery_voltage.hpp"
 #include "frootspi_msgs/msg/ball_detection.hpp"
-#include "frootspi_msgs/msg/switches_state.hpp"
 #include "frootspi_msgs/msg/kick_command.hpp"
 #include "frootspi_msgs/srv/kick.hpp"
 #include "frootspi_msgs/srv/set_kicker_charging.hpp"
@@ -44,7 +43,6 @@ private:
 
   // subscribers
   rclcpp::Subscription<frootspi_msgs::msg::BallDetection>::SharedPtr sub_ball_detection_;
-  rclcpp::Subscription<frootspi_msgs::msg::SwitchesState>::SharedPtr sub_switch_state_;
   rclcpp::Subscription<frootspi_msgs::msg::BatteryVoltage>::SharedPtr sub_kicker_voltage_;
   rclcpp::Subscription<frootspi_msgs::msg::KickCommand>::SharedPtr sub_kick_command_;
   // servers
@@ -56,7 +54,6 @@ private:
 
   // subscription callbacks
   void callback_ball_detection(const frootspi_msgs::msg::BallDetection::SharedPtr msg);
-  void callback_switch_state(const frootspi_msgs::msg::SwitchesState::SharedPtr msg);
   void callback_kicker_voltage(const frootspi_msgs::msg::BatteryVoltage::SharedPtr msg);
   void callback_kick_command(const frootspi_msgs::msg::KickCommand::SharedPtr msg);
 
@@ -83,7 +80,6 @@ private:
   float capacitor_voltage_;
   bool set_charge_enable_;
   bool set_charge_enable_pre_;
-  frootspi_msgs::msg::SwitchesState switches_state_;
 };
 
 }  // namespace frootspi_kicker
