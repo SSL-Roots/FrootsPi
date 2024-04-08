@@ -205,7 +205,7 @@ rcl_interfaces::msg::SetParametersResult Driver::parametersCallback(
   if (gain_setting_result == WheelController::ErrorCode::ERROR_NONE) {
     result.successful = true;
     result.reason = "success";
-  } else if (gain_setting_result == WheelController::ErrorCode::ERROR_GAIN_SETTING_MODE_DISABLED) {
+  } else if (gain_setting_result == WheelController::ErrorCode::ERROR_INVALID_MODE) {
     result.successful = false;
     result.reason = "ゲイン設定モードが無効になっています";
   } else if (gain_setting_result == WheelController::ErrorCode::ERROR_CAN_SEND_FAILED) {
@@ -266,6 +266,41 @@ void Driver::on_high_rate_polling_timer()
     this->latest_turned_on_dip0_ = turned_on_dip0;
     this->latest_turned_on_dip1_ = turned_on_dip1;
     this->latest_pushed_shutdown_ = pushed_shutdown;
+
+    /**
+     * デバッグモード設定
+    */
+    // 車輪
+    if (pushed_button3) {
+      this->wheel_controller_.set_mode(WheelController::DEBUG_MODE);
+      this->wheel_controller_.debug_set_wheel_velocities(10.0, 10.0, 10.0);
+    } else {
+      this->wheel_controller_.debug_set_wheel_velocities(0.0, 0.0, 0.0);
+      this->wheel_controller_.set_mode(WheelController::NORMAL_MODE);
+    }
+
+    // ドリブラー
+    if (pushed_button2) {
+      this->dribbler_.enableDebugMode();
+      this->dribbler_.debugDrive(1.0);
+    } else {
+      this->dribbler_.debugDrive(0.0);
+      this->dribbler_.diasbleDebugMode();
+    }
+
+    // キッカー
+    if (pushed_button1) {
+      this->kicker_.enableDebugMode();
+      this->kicker_.debugEnableCharging();
+    } else {
+      this->kicker_.debugDisableCharging();
+      this->kicker_.disableDebugMode();
+    }
+
+    // 放電スイッチ
+    if (pushed_button0) {
+      this->kicker_.discharge();
+    }
   }
 
   // オムニホイール回転速度をパブリッシュ
@@ -496,7 +531,8 @@ void Driver::on_enable_gain_setting(
 {
   if (request->data) {
     // ゲイン設定を有効にする
-    WheelController::ErrorCode error_code = wheel_controller_.enable_gain_setting();
+    WheelController::ErrorCode error_code = wheel_controller_.set_mode(
+      WheelController::GAIN_SETTING_MODE);
     if (error_code == WheelController::ErrorCode::ERROR_NONE) {
       response->success = true;
       response->message = "ゲイン設定モードを有効にしました。車輪が回らなくなります。";
@@ -506,7 +542,8 @@ void Driver::on_enable_gain_setting(
     }
   } else {
     // ゲイン設定を無効にする
-    WheelController::ErrorCode error_code = wheel_controller_.disable_gain_setting();
+    WheelController::ErrorCode error_code =
+      wheel_controller_.set_mode(WheelController::NORMAL_MODE);
     if (error_code == WheelController::ErrorCode::ERROR_NONE) {
       response->success = true;
       response->message = "ゲイン設定モードを無効にしました。車輪が回せます。";

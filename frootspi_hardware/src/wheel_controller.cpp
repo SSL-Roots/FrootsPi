@@ -33,7 +33,7 @@ WheelController::WheelController()
 : socket_(-1),
   vel_front_right_(0.0), vel_front_left_(0.0), vel_back_center_(0.0),
   gain_p_(0.0), gain_i_(0.0), gain_d_(0.0),
-  is_gain_setting_enabled_(false)
+  mode_(WheelController::Mode::NORMAL_MODE)
 {
 }
 
@@ -87,40 +87,8 @@ bool WheelController::device_close()
 WheelController::ErrorCode WheelController::set_wheel_velocities(
   const double vel_front_right, const double vel_front_left, const double vel_back_center)
 {
-  constexpr double LSB = 100;  // 送信データの1bitが、車輪速度の100倍を表す
-
-  if (is_gain_setting_enabled_) {
-    return WheelController::ERROR_GAIN_SETTING_MODE_ENABLED;
-  }
-
-  // インスタンス変数に現在の速度を保存
-  vel_front_right_ = vel_front_right;
-  vel_front_left_ = vel_front_left;
-  vel_back_center_ = vel_back_center;
-
-  int16_t motor_vel_right = vel_front_right * LSB;
-  int16_t motor_vel_left = vel_front_left * LSB;
-  int16_t motor_vel_center = vel_back_center * LSB;
-
-  struct can_frame frame;
-  frame.can_id = 0x1aa;
-  frame.can_dlc = 8;
-  frame.data[0] = 0xAA;
-  frame.data[1] = 0xAA;
-  frame.data[2] = 0xFF & motor_vel_left;
-  frame.data[3] = 0xFF & (motor_vel_left >> 8);
-  frame.data[4] = 0xFF & motor_vel_center;
-  frame.data[5] = 0xFF & (motor_vel_center >> 8);
-  frame.data[6] = 0xFF & motor_vel_right;
-  frame.data[7] = 0xFF & (motor_vel_right >> 8);
-
-  bool can_result;
-  can_result = send_can(frame);
-
-  if (!can_result) {
-    return WheelController::ERROR_CAN_SEND_FAILED;
-  }
-  return WheelController::ERROR_NONE;
+  if (this->mode_ != WheelController::NORMAL_MODE) {return WheelController::ERROR_INVALID_MODE;}
+  return this->set_wheel_velocities_(vel_front_right, vel_front_left, vel_back_center);
 }
 
 
@@ -129,47 +97,31 @@ bool WheelController::is_motor_stopping()
   return (vel_front_right_ == 0.0) && (vel_front_left_ == 0.0) && (vel_back_center_ == 0.0);
 }
 
-/**
- * @brief ゲイン設定モードを有効にする
- * @return エラーコード
- * @retval WheelController::ERROR_NONE 成功
- * @retval WheelController::ERROR_WHEELS_ARE_MOVING 車輪が動いているため、ゲイン設定モードを有効にできない
-*/
-WheelController::ErrorCode WheelController::enable_gain_setting()
+WheelController::ErrorCode WheelController::set_mode(WheelController::Mode mode)
 {
-  // 車輪が停止していたらenableできる
+  // 車輪が停止していないと設定できない
   if (!is_motor_stopping()) {
-    RCLCPP_ERROR(LOGGER, "車輪が停止していないため、ゲイン設定を有効にできません");
+    RCLCPP_ERROR(LOGGER, "車輪が停止していないため、モードを切り替えられません");
     return WheelController::ERROR_WHEELS_ARE_MOVING;
   }
 
-  is_gain_setting_enabled_ = true;
+  this->mode_ = mode;
   return WheelController::ERROR_NONE;
 }
 
-/**
- * @brief ゲイン設定モードを無効にする
- * @return エラーコード
- * @retval WheelController::ERROR_NONE 成功
-*/
-WheelController::ErrorCode WheelController::disable_gain_setting()
-{
-  is_gain_setting_enabled_ = false;
-  return WheelController::ERROR_NONE;
-}
 
 /**
  * @brief Pゲインを設定する
  * @param[in] gain_p Pゲイン
  * @return エラーコード
  * @retval WheelController::ERROR_NONE 成功
- * @retval WheelController::ERROR_GAIN_SETTING_MODE_DISABLED ゲイン設定モードが無効のため、ゲインを設定できない
+ * @retval WheelController::ERROR_INVALID_MODE モードがゲイン設定モードでないため、ゲインを設定できない
  * @retval WheelController::ERROR_CAN_SEND_FAILED CAN送信に失敗した
 */
 WheelController::ErrorCode WheelController::set_p_gain(const double gain_p)
 {
-  if (!is_gain_setting_enabled_) {
-    return WheelController::ERROR_GAIN_SETTING_MODE_DISABLED;
+  if (this->mode_ != WheelController::GAIN_SETTING_MODE) {
+    return WheelController::ERROR_INVALID_MODE;
   }
 
   gain_p_ = gain_p;
@@ -187,13 +139,13 @@ WheelController::ErrorCode WheelController::set_p_gain(const double gain_p)
  * @param[in] gain_i Iゲイン
  * @return エラーコード
  * @retval WheelController::ERROR_NONE 成功
- * @retval WheelController::ERROR_GAIN_SETTING_MODE_DISABLED ゲイン設定モードが無効のため、ゲインを設定できない
+ * @retval WheelController::ERROR_INVALID_MODE モードがゲイン設定モードでないため、ゲインを設定できない
  * @retval WheelController::ERROR_CAN_SEND_FAILED CAN送信に失敗した
 */
 WheelController::ErrorCode WheelController::set_i_gain(const double gain_i)
 {
-  if (!is_gain_setting_enabled_) {
-    return WheelController::ERROR_GAIN_SETTING_MODE_DISABLED;
+  if (this->mode_ != WheelController::GAIN_SETTING_MODE) {
+    return WheelController::ERROR_INVALID_MODE;
   }
 
   gain_i_ = gain_i;
@@ -211,13 +163,13 @@ WheelController::ErrorCode WheelController::set_i_gain(const double gain_i)
  * @param[in] gain_d Dゲイン
  * @return エラーコード
  * @retval WheelController::ERROR_NONE 成功
- * @retval WheelController::ERROR_GAIN_SETTING_MODE_DISABLED ゲイン設定モードが無効のため、ゲインを設定できない
+ * @retval WheelController::ERROR_INVALID_MODE モードがゲイン設定モードでないため、ゲインを設定できない
  * @retval WheelController::ERROR_CAN_SEND_FAILED CAN送信に失敗した
 */
 WheelController::ErrorCode WheelController::set_d_gain(const double gain_d)
 {
-  if (!is_gain_setting_enabled_) {
-    return WheelController::ERROR_GAIN_SETTING_MODE_DISABLED;
+  if (this->mode_ != WheelController::GAIN_SETTING_MODE) {
+    return WheelController::ERROR_INVALID_MODE;
   }
 
   gain_d_ = gain_d;
@@ -237,15 +189,15 @@ WheelController::ErrorCode WheelController::set_d_gain(const double gain_d)
  * @param[in] gain_d Dゲイン
  * @return エラーコード
  * @retval WheelController::ERROR_NONE 成功
- * @retval WheelController::ERROR_GAIN_SETTING_MODE_DISABLED ゲイン設定モードが無効のため、ゲインを設定できない
+ * @retval WheelController::ERROR_INVALID_MODE モードがゲイン設定モードでないため、ゲインを設定できない
  * @retval WheelController::ERROR_CAN_SEND_FAILED CAN送信に失敗した
 */
 WheelController::ErrorCode WheelController::set_pid_gain(
   const double gain_p, const double gain_i,
   const double gain_d)
 {
-  if (!is_gain_setting_enabled_) {
-    return WheelController::ERROR_GAIN_SETTING_MODE_DISABLED;
+  if (this->mode_ != WheelController::GAIN_SETTING_MODE) {
+    return WheelController::ERROR_INVALID_MODE;
   }
 
   gain_p_ = gain_p;
@@ -258,6 +210,13 @@ WheelController::ErrorCode WheelController::set_pid_gain(
     return WheelController::ERROR_CAN_SEND_FAILED;
   }
   return WheelController::ERROR_NONE;
+}
+
+WheelController::ErrorCode WheelController::debug_set_wheel_velocities(
+  const double vel_front_right, const double vel_front_left, const double vel_back_center)
+{
+  if (this->mode_ != WheelController::DEBUG_MODE) {return WheelController::ERROR_INVALID_MODE;}
+  return this->set_wheel_velocities_(vel_front_right, vel_front_left, vel_back_center);
 }
 
 bool WheelController::send_pid_gain()
@@ -315,4 +274,39 @@ double WheelController::constrain(const double value, const double min, const do
   } else {
     return value;
   }
+}
+
+WheelController::ErrorCode WheelController::set_wheel_velocities_(
+  const double vel_front_right, const double vel_front_left, const double vel_back_center)
+{
+  constexpr double LSB = 100;  // 送信データの1bitが、車輪速度の100倍を表す
+
+  // インスタンス変数に現在の速度を保存
+  vel_front_right_ = vel_front_right;
+  vel_front_left_ = vel_front_left;
+  vel_back_center_ = vel_back_center;
+
+  int16_t motor_vel_right = vel_front_right * LSB;
+  int16_t motor_vel_left = vel_front_left * LSB;
+  int16_t motor_vel_center = vel_back_center * LSB;
+
+  struct can_frame frame;
+  frame.can_id = 0x1aa;
+  frame.can_dlc = 8;
+  frame.data[0] = 0xAA;
+  frame.data[1] = 0xAA;
+  frame.data[2] = 0xFF & motor_vel_left;
+  frame.data[3] = 0xFF & (motor_vel_left >> 8);
+  frame.data[4] = 0xFF & motor_vel_center;
+  frame.data[5] = 0xFF & (motor_vel_center >> 8);
+  frame.data[6] = 0xFF & motor_vel_right;
+  frame.data[7] = 0xFF & (motor_vel_right >> 8);
+
+  bool can_result;
+  can_result = send_can(frame);
+
+  if (!can_result) {
+    return WheelController::ERROR_CAN_SEND_FAILED;
+  }
+  return WheelController::ERROR_NONE;
 }
