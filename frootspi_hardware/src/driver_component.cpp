@@ -531,7 +531,8 @@ void Driver::on_enable_gain_setting(
 {
   if (request->data) {
     // ゲイン設定を有効にする
-    WheelController::ErrorCode error_code = wheel_controller_.set_mode(WheelController::GAIN_SETTING_MODE);
+    WheelController::ErrorCode error_code = wheel_controller_.set_mode(
+      WheelController::GAIN_SETTING_MODE);
     if (error_code == WheelController::ErrorCode::ERROR_NONE) {
       response->success = true;
       response->message = "ゲイン設定モードを有効にしました。車輪が回らなくなります。";
@@ -541,7 +542,8 @@ void Driver::on_enable_gain_setting(
     }
   } else {
     // ゲイン設定を無効にする
-    WheelController::ErrorCode error_code = wheel_controller_.set_mode(WheelController::NORMAL_MODE);
+    WheelController::ErrorCode error_code =
+      wheel_controller_.set_mode(WheelController::NORMAL_MODE);
     if (error_code == WheelController::ErrorCode::ERROR_NONE) {
       response->success = true;
       response->message = "ゲイン設定モードを無効にしました。車輪が回せます。";

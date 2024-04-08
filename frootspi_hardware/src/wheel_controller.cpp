@@ -87,7 +87,7 @@ bool WheelController::device_close()
 WheelController::ErrorCode WheelController::set_wheel_velocities(
   const double vel_front_right, const double vel_front_left, const double vel_back_center)
 {
-  if (this->mode_ != WheelController::NORMAL_MODE) return WheelController::ERROR_INVALID_MODE;
+  if (this->mode_ != WheelController::NORMAL_MODE) {return WheelController::ERROR_INVALID_MODE;}
   return this->set_wheel_velocities_(vel_front_right, vel_front_left, vel_back_center);
 }
 
@@ -110,7 +110,6 @@ WheelController::ErrorCode WheelController::set_mode(WheelController::Mode mode)
 }
 
 
-
 /**
  * @brief Pゲインを設定する
  * @param[in] gain_p Pゲイン
@@ -121,7 +120,9 @@ WheelController::ErrorCode WheelController::set_mode(WheelController::Mode mode)
 */
 WheelController::ErrorCode WheelController::set_p_gain(const double gain_p)
 {
-  if (this->mode_ != WheelController::GAIN_SETTING_MODE)  return WheelController::ERROR_INVALID_MODE;
+  if (this->mode_ != WheelController::GAIN_SETTING_MODE) {
+    return WheelController::ERROR_INVALID_MODE;
+  }
 
   gain_p_ = gain_p;
   bool send_result;
@@ -143,7 +144,9 @@ WheelController::ErrorCode WheelController::set_p_gain(const double gain_p)
 */
 WheelController::ErrorCode WheelController::set_i_gain(const double gain_i)
 {
-  if (this->mode_ != WheelController::GAIN_SETTING_MODE)  return WheelController::ERROR_INVALID_MODE;
+  if (this->mode_ != WheelController::GAIN_SETTING_MODE) {
+    return WheelController::ERROR_INVALID_MODE;
+  }
 
   gain_i_ = gain_i;
   bool send_result;
@@ -165,7 +168,9 @@ WheelController::ErrorCode WheelController::set_i_gain(const double gain_i)
 */
 WheelController::ErrorCode WheelController::set_d_gain(const double gain_d)
 {
-  if (this->mode_ != WheelController::GAIN_SETTING_MODE)  return WheelController::ERROR_INVALID_MODE;
+  if (this->mode_ != WheelController::GAIN_SETTING_MODE) {
+    return WheelController::ERROR_INVALID_MODE;
+  }
 
   gain_d_ = gain_d;
   bool send_result;
@@ -191,7 +196,9 @@ WheelController::ErrorCode WheelController::set_pid_gain(
   const double gain_p, const double gain_i,
   const double gain_d)
 {
-  if (this->mode_ != WheelController::GAIN_SETTING_MODE)  return WheelController::ERROR_INVALID_MODE;
+  if (this->mode_ != WheelController::GAIN_SETTING_MODE) {
+    return WheelController::ERROR_INVALID_MODE;
+  }
 
   gain_p_ = gain_p;
   gain_i_ = gain_i;
@@ -208,7 +215,7 @@ WheelController::ErrorCode WheelController::set_pid_gain(
 WheelController::ErrorCode WheelController::debug_set_wheel_velocities(
   const double vel_front_right, const double vel_front_left, const double vel_back_center)
 {
-  if (this->mode_ != WheelController::DEBUG_MODE) return WheelController::ERROR_INVALID_MODE;
+  if (this->mode_ != WheelController::DEBUG_MODE) {return WheelController::ERROR_INVALID_MODE;}
   return this->set_wheel_velocities_(vel_front_right, vel_front_left, vel_back_center);
 }
 
@@ -270,7 +277,7 @@ double WheelController::constrain(const double value, const double min, const do
 }
 
 WheelController::ErrorCode WheelController::set_wheel_velocities_(
-    const double vel_front_right, const double vel_front_left, const double vel_back_center)
+  const double vel_front_right, const double vel_front_left, const double vel_back_center)
 {
   constexpr double LSB = 100;  // 送信データの1bitが、車輪速度の100倍を表す
 

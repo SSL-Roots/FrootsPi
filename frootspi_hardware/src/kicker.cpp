@@ -74,7 +74,7 @@ bool Kicker::kickStraight(uint32_t powerMmps)
 {
   const int MAX_SLEEP_TIME_USEC_FOR_STRAIGHT = 30000;
 
-  if (this->debug_mode_)  return false;
+  if (this->debug_mode_) {return false;}
 
   uint32_t sleep_time_usec = 4 * powerMmps + 100;  // 実験に基づく定数
   if (sleep_time_usec > MAX_SLEEP_TIME_USEC_FOR_STRAIGHT) {
@@ -108,7 +108,7 @@ bool Kicker::kickStraight(uint32_t powerMmps)
  */
 bool Kicker::enableCharging()
 {
-  if (this->debug_mode_) return false;
+  if (this->debug_mode_) {return false;}
   return this->enableCharging_();
 }
 
@@ -119,7 +119,7 @@ bool Kicker::enableCharging()
  */
 bool Kicker::disableCharging()
 {
-  if (this->debug_mode_) return false;
+  if (this->debug_mode_) {return false;}
   return this->disableCharging_();
 }
 
@@ -247,7 +247,7 @@ bool Kicker::generateWave(gpioPulse_t * wave, size_t num_pulses)
  */
 bool Kicker::enableCharging_()
 {
-  if (this->is_charging_) return false;
+  if (this->is_charging_) {return false;}
 
   this->cancelKick();
   gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_HIGH);
@@ -263,7 +263,7 @@ bool Kicker::enableCharging_()
  */
 bool Kicker::disableCharging_()
 {
-  if (!this->is_charging_) return false;
+  if (!this->is_charging_) {return false;}
 
   this->cancelKick();
   gpio_write(pi_, GPIO_KICK_ENABLE_CHARGE, PI_LOW);

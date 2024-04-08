@@ -177,8 +177,7 @@ void KickerNode::on_capacitor_charge_request(
     charge_enable_from_conductor_ = false;
   }
 
-  if ((charge_enable_from_conductor_ == true) && (is_kicking_ == false))
-  {
+  if ((charge_enable_from_conductor_ == true) && (is_kicking_ == false)) {
     charge_enable = true;
   } else {
     charge_enable = false;

@@ -62,7 +62,7 @@ void Dribbler::close()
  */
 bool Dribbler::drive(double power)
 {
-  if (this->debug_mode_) return false;
+  if (this->debug_mode_) {return false;}
   return this->drive_(power);
 }
 
@@ -85,12 +85,12 @@ void Dribbler::diasbleDebugMode()
 
 /**
  * @brief ドリブラーをデバッグモードで駆動する。
- * 
+ *
  * @param power ドリブラーの駆動力。0.0で停止、1.0で最大出力。
  */
 bool Dribbler::debugDrive(double power)
 {
-  if (!this->debug_mode_) return false;
+  if (!this->debug_mode_) {return false;}
   return this->drive_(power);
 }
 
