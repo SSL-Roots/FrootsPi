@@ -18,6 +18,7 @@
  * @brief コンストラクタ。ドリブラーの初期化を行います。
  */
 Dribbler::Dribbler()
+: debug_mode_(false)
 {
 }
 
@@ -60,6 +61,46 @@ void Dribbler::close()
  * @param power ドリブラーの駆動力。0.0で停止、1.0で最大出力。
  */
 bool Dribbler::drive(double power)
+{
+  if (this->debug_mode_) return false;
+  return this->drive_(power);
+}
+
+/**
+ * @brief デバッグモードを有効にする。
+ */
+void Dribbler::enableDebugMode()
+{
+  this->debug_mode_ = true;
+}
+
+/**
+ * @brief デバッグモードを無効にする。
+ */
+void Dribbler::diasbleDebugMode()
+{
+  this->debug_mode_ = false;
+}
+
+
+/**
+ * @brief ドリブラーをデバッグモードで駆動する。
+ * 
+ * @param power ドリブラーの駆動力。0.0で停止、1.0で最大出力。
+ */
+bool Dribbler::debugDrive(double power)
+{
+  if (!this->debug_mode_) return false;
+  return this->drive_(power);
+}
+
+
+/**
+ * @brief ドリブラーを駆動する。
+ *
+ * @param power ドリブラーの駆動力。0.0で停止、1.0で最大出力。
+ */
+bool Dribbler::drive_(double power)
 {
   if (power > 1.0) {
     power = 1.0;

@@ -33,8 +33,15 @@ public:
 
   bool drive(double power);
 
+  void enableDebugMode();
+  void diasbleDebugMode();
+  bool debugDrive(double power);
+
 private:
   int pi_;
+  bool debug_mode_;
+
+  bool drive_(double power);
 };
 
 #endif  // FROOTSPI_HARDWARE__DRIBBLER_HPP_

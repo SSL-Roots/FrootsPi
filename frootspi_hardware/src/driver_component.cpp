@@ -279,6 +279,15 @@ void Driver::on_high_rate_polling_timer()
       this->wheel_controller_.set_mode(WheelController::NORMAL_MODE);
     }
 
+    // ドリブラー
+    if (pushed_button2) {
+      this->dribbler_.enableDebugMode();
+      this->dribbler_.debugDrive(1.0);
+    } else {
+      this->dribbler_.debugDrive(0.0);
+      this->dribbler_.diasbleDebugMode();
+    }
+
     // キッカー
     if (pushed_button1) {
       this->kicker_.enableDebugMode();
