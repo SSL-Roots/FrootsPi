@@ -16,11 +16,14 @@
 # limitations under the License.
 
 import csv
-from frootspi_msgs.msg import SpeakerVoice
 import os
+
+from frootspi_msgs.msg import SpeakerVoice
+
 import rclpy
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
+
 import simpleaudio
 
 
@@ -52,14 +55,14 @@ class Speaker(Node):
     def __init__(self):
         super().__init__('speaker')
 
-        self._voices_path = self.declare_parameter('voices_path', "").value
-        self._file_list_path = self._voices_path + "/" + \
-            self.declare_parameter('file_list_name', "voice_file_list.csv").value
+        self._voices_path = self.declare_parameter('voices_path', '').value
+        self._file_list_path = self._voices_path + '/' + \
+            self.declare_parameter('file_list_name', 'voice_file_list.csv').value
 
         # TODO(ShotaAk): CSVファイルのフォーマットもチェックしたい
         if not os.path.isfile(self._file_list_path):
             self.get_logger().info('file exist')
-            raise ValueError("File:{} does not exist!".format(self._file_list_path))
+            raise ValueError('File:{} does not exist!'.format(self._file_list_path))
 
         self._file_dict = self.make_file_dict(self._file_list_path)
 
@@ -72,9 +75,9 @@ class Speaker(Node):
         with open(file_list_path, 'r') as f:
             reader = csv.DictReader(f)
             for r in reader:
-                voice_type = r["type"]
+                voice_type = r['type']
                 if hasattr(SpeakerVoice, voice_type):
-                    file_dict[getattr(SpeakerVoice, voice_type)] = r["file_name"]
+                    file_dict[getattr(SpeakerVoice, voice_type)] = r['file_name']
 
         return file_dict
 
@@ -83,8 +86,8 @@ class Speaker(Node):
             self.get_logger().info('Voice type:{} does not defined.'.format(msg.voice_type))
             return
 
-        voice_file_path = self._voices_path + "/" + self._file_dict[msg.voice_type]
-        if not os.path.isfile(voice_file_path) or not voice_file_path.endswith(".wav"):
+        voice_file_path = self._voices_path + '/' + self._file_dict[msg.voice_type]
+        if not os.path.isfile(voice_file_path) or not voice_file_path.endswith('.wav'):
             self.get_logger().info('File:{} is not wav file.'.format(voice_file_path))
             return
 

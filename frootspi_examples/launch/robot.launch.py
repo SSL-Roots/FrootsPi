@@ -13,19 +13,23 @@
 # limitations under the License.
 
 import os
+from pathlib import Path
+
 from ament_index_python.packages import get_package_share_directory
+
 from launch import LaunchDescription
 from launch.actions import ExecuteProcess
 from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
+
 from launch_ros.actions import ComposableNodeContainer
 from launch_ros.actions import PushRosNamespace
 from launch_ros.descriptions import ComposableNode
 
-import yaml
-from pathlib import Path
 
-DEFAULT_FILE_PATH = Path.home() / Path("robot_config.yaml")
+import yaml
+
+DEFAULT_FILE_PATH = Path.home() / Path('robot_config.yaml')
 
 
 def get_configuration_from_file(file_path):
@@ -34,7 +38,7 @@ def get_configuration_from_file(file_path):
     # yamlで書かれた設定ファイルから値を取得する
     with open(file_path, 'r') as f:
         config = yaml.safe_load(f)
-        print(f"Read robot config from {file_path}")
+        print(f'Read robot config from {file_path}')
     return config
 
 
