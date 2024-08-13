@@ -74,12 +74,28 @@ bool Kicker::kickStraight(uint32_t powerMmps)
 {
   const int MAX_SLEEP_TIME_USEC_FOR_STRAIGHT = 30000;
 
+  const int OPENTIME_1MS = 1300;
+  const int OPENTIME_2MS = 1700;
+  const int OPENTIME_3MS = 2300;
+  const int OPENTIME_4MS = 3000;
+  const int OPENTIME_5MS = 3800;
+  const int OPENTIME_6MS = 7000;
+
   if (this->debug_mode_) {return false;}
 
-  uint32_t sleep_time_usec = 4 * powerMmps + 100;  // 実験に基づく定数
+  uint32_t sleep_time_usec;
+       if (powerMmps < 2000) sleep_time_usec = OPENTIME_1MS;
+  else if (powerMmps < 3000) sleep_time_usec = OPENTIME_2MS;
+  else if (powerMmps < 4000) sleep_time_usec = OPENTIME_3MS;
+  else if (powerMmps < 5000) sleep_time_usec = OPENTIME_4MS;
+  else if (powerMmps < 6000) sleep_time_usec = OPENTIME_5MS;
+  else                       sleep_time_usec = OPENTIME_6MS;
+
   if (sleep_time_usec > MAX_SLEEP_TIME_USEC_FOR_STRAIGHT) {
     sleep_time_usec = MAX_SLEEP_TIME_USEC_FOR_STRAIGHT;
   }
+
+  std::cout << sleep_time_usec << std::endl;
 
   // GPIOをHIGHにしている時間を変化させて、キックパワーを変更する
   uint32_t bit_kick_straight = 1 << GPIO_KICK_STRAIGHT;
