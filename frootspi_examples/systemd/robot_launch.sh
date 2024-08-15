@@ -6,7 +6,7 @@ ROS_DOMAIN_ID_VALUE=22
 if [ -f ${ENVFILE} ]; then
     #環境変数読み込み
     echo "Loading ROS2 Env..."
-    source /opt/ros/foxy/setup.bash
+    source /opt/ros/jazzy/setup.bash
     source ${ENVFILE}
     export ROS_DOMAIN_ID=${ROS_DOMAIN_ID_VALUE}
 

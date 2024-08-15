@@ -61,6 +61,14 @@ $ source ~/ros2_ws/install/setup.bash
 
 [SSL-Roots/init_frootspi_gpio_script](https://github.com/SSL-Roots/init_frootspi_gpio_script) のスクリプトを実行してください。
 
+### Robot IDの設定
+
+ホームディレクトリに`robot_config.yaml`ファイルを作成し、ロボットIDを設定します。
+
+```yaml
+robot_id: 1
+```
+
 ## Examples
 
 ### Start frootspi
@@ -79,6 +87,12 @@ $ ros2 launch frootspi_examples hardware.launch.py
 
 ```sh
 $ ros2 topic echo /switch_state
+```
+
+### Robotを起動する
+
+```sh
+$ ros2 launch frootspi_examples robot.launch.py
 ```
 
 ### Joystickを用いた動作確認

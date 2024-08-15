@@ -33,7 +33,7 @@ def generate_launch_description():
     )
 
     declare_file_list_name = DeclareLaunchArgument(
-        'file_list_name', default_value="voice_file_list.csv",
+        'file_list_name', default_value='voice_file_list.csv',
         description=('Set voice file list name.')
     )
 

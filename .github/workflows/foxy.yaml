@@ -1,4 +1,4 @@
-name: foxy
+name: Build and Test
 
 on:
   push:
@@ -10,9 +10,16 @@ on:
 
 jobs:
   build-and-test:
+    strategy:
+      matrix:
+        env:
+          - { ROS_DISTRO: foxy}
+          - { ROS_DISTRO: humble }
+          - { ROS_DISTRO: jazzy }
+
     runs-on: ubuntu-latest
     container:
-      image: ros:foxy-ros-base
+      image: ros:${{ matrix.env.ROS_DISTRO }}-ros-base
     steps:
       - name: Install pigpio
         run: |
@@ -23,7 +30,7 @@ jobs:
           sudo make install
       - name: Build Workspace
         run: |
-          . /opt/ros/foxy/setup.sh
+          . /opt/ros/${{ matrix.env.ROS_DISTRO }}/setup.sh
           mkdir -p ros2_ws/src
           cd ros2_ws
           colcon build
@@ -33,7 +40,7 @@ jobs:
           path: ros2_ws/src/frootspi
       - name: Build 
         run: |
-          . /opt/ros/foxy/setup.sh
+          . /opt/ros/${{ matrix.env.ROS_DISTRO }}/setup.sh
           cd ros2_ws/src
           git clone https://github.com/SSL-Roots/consai_frootspi_msgs.git
           git clone https://github.com/SSL-Roots/frootspi_msgs.git
@@ -44,7 +51,7 @@ jobs:
           colcon build --symlink-install
       - name: Test
         run: |
-          . /opt/ros/foxy/setup.sh
+          . /opt/ros/${{ matrix.env.ROS_DISTRO }}/setup.sh
           . ros2_ws/install/setup.sh
           cd ros2_ws
           colcon test
