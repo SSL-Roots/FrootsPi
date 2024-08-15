@@ -95,8 +95,6 @@ bool Kicker::kickStraight(uint32_t powerMmps)
     sleep_time_usec = MAX_SLEEP_TIME_USEC_FOR_STRAIGHT;
   }
 
-  std::cout << sleep_time_usec << std::endl;
-
   // GPIOをHIGHにしている時間を変化させて、キックパワーを変更する
   uint32_t bit_kick_straight = 1 << GPIO_KICK_STRAIGHT;
   uint32_t bit_kick_enable_charge = 1 << GPIO_KICK_ENABLE_CHARGE;
