@@ -20,6 +20,7 @@
 
 #include "frootspi_conductor/conductor_component.hpp"
 #include "rclcpp/rclcpp.hpp"
+#include "rclcpp/qos.hpp"
 
 namespace frootspi_conductor
 {
@@ -31,7 +32,9 @@ Conductor::Conductor(const rclcpp::NodeOptions & options)
   using namespace std::placeholders;  // for _1, _2, _3...
 
   sub_command_ = create_subscription<RobotCommand>(
-    "command", 10, std::bind(&Conductor::callback_commands, this, _1));
+    "command",
+    rclcpp::QoS(10).best_effort(),
+    std::bind(&Conductor::callback_commands, this, _1));
 
   pub_target_velocity_ = create_publisher<geometry_msgs::msg::Twist>("target_velocity", 10);
   pub_dribble_power_ = create_publisher<frootspi_msgs::msg::DribblePower>("dribble_power", 10);
