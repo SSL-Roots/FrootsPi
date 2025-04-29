@@ -84,12 +84,19 @@ bool Kicker::kickStraight(uint32_t powerMmps)
   if (this->debug_mode_) {return false;}
 
   uint32_t sleep_time_usec;
-       if (powerMmps < 2000) sleep_time_usec = OPENTIME_1MS;
-  else if (powerMmps < 3000) sleep_time_usec = OPENTIME_2MS;
-  else if (powerMmps < 4000) sleep_time_usec = OPENTIME_3MS;
-  else if (powerMmps < 5000) sleep_time_usec = OPENTIME_4MS;
-  else if (powerMmps < 6000) sleep_time_usec = OPENTIME_5MS;
-  else                       sleep_time_usec = OPENTIME_6MS;
+  if (powerMmps < 2000) {
+    sleep_time_usec = OPENTIME_1MS;
+  } else if (powerMmps < 3000) {
+    sleep_time_usec = OPENTIME_2MS;
+  } else if (powerMmps < 4000) {
+    sleep_time_usec = OPENTIME_3MS;
+  } else if (powerMmps < 5000) {
+    sleep_time_usec = OPENTIME_4MS;
+  } else if (powerMmps < 6000) {
+    sleep_time_usec = OPENTIME_5MS;
+  } else {
+    sleep_time_usec = OPENTIME_6MS;
+  }
 
   if (sleep_time_usec > MAX_SLEEP_TIME_USEC_FOR_STRAIGHT) {
     sleep_time_usec = MAX_SLEEP_TIME_USEC_FOR_STRAIGHT;
